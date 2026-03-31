@@ -24,12 +24,16 @@ function toIsoDate(unixSeconds: number | null | undefined): string | null {
 }
 
 function getCurrentPeriodEnd(subscription: Stripe.Subscription): string | null {
-  const maxPeriodEnd = subscription.items.data.reduce((maxEnd, item) => {
-    return Math.max(maxEnd, item.current_period_end ?? 0);
-  }, 0);
+  // current_period_end lives on individual SubscriptionItems.
+  if (subscription.items.data.length > 0) {
+    const maxPeriodEnd = subscription.items.data.reduce((maxEnd, item) => {
+      return Math.max(maxEnd, item.current_period_end ?? 0);
+    }, 0);
+    if (maxPeriodEnd > 0) return toIsoDate(maxPeriodEnd);
+  }
 
-  // Fallback to cancel_at when items are unavailable (defensive only).
-  return toIsoDate(maxPeriodEnd || subscription.cancel_at);
+  // Fallback to cancel_at for cancelled/deleted subscriptions.
+  return toIsoDate(subscription.cancel_at);
 }
 
 /**
@@ -127,8 +131,9 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     return;
   }
 
-  const subscription = await stripe.subscriptions.retrieve(stripeSubscriptionId);
-  const stripeSubscription = subscription as unknown as Stripe.Subscription;
+  const stripeSubscription = await stripe.subscriptions.retrieve(stripeSubscriptionId, {
+    expand: ["items"],
+  });
 
   // Determine tier from the price the user actually purchased.
   const lineItems = await stripe.checkout.sessions.listLineItems(session.id, { limit: 1 });

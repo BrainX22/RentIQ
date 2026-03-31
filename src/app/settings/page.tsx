@@ -2,13 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
 import SettingsHeader from "@/components/settings/SettingsHeader";
 import ProfileSection from "@/components/settings/ProfileSection";
 import SubscriptionSection from "@/components/settings/SubscriptionSection";
 import PropertiesPreview from "@/components/settings/PropertiesPreview";
 import SecuritySection from "@/components/settings/SecuritySection";
 import DangerZone from "@/components/settings/DangerZone";
+import SettingsSkeleton from "@/components/settings/SettingsSkeleton";
 
 interface ProfileData {
   profile: {
@@ -78,14 +78,7 @@ export default function SettingsPage() {
   };
 
   if (isLoading) {
-    return (
-      <main className="mx-auto max-w-2xl px-4 py-12 sm:px-6">
-        <div className="flex items-center justify-center gap-2 py-24 text-gray-500">
-          <Loader2 className="h-5 w-5 animate-spin" />
-          Loading settings…
-        </div>
-      </main>
-    );
+    return <SettingsSkeleton />;
   }
 
   if (error || !data) {

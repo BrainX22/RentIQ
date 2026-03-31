@@ -90,12 +90,14 @@ describe("SettingsPage", () => {
     capturedOnDisplayNameUpdate = undefined;
   });
 
-  it("shows loading state initially", () => {
+  it("shows loading skeleton initially", () => {
     // Never-resolving fetch to keep loading state visible
     mockFetch.mockReturnValue(new Promise(() => {}));
 
     render(<SettingsPage />);
-    expect(screen.getByText(/Loading settings/)).toBeInTheDocument();
+    // Skeleton renders multiple skeleton pulse elements instead of text
+    const skeletons = document.querySelectorAll('[data-slot="skeleton"]');
+    expect(skeletons.length).toBeGreaterThan(0);
   });
 
   it("redirects to login on 401", async () => {
