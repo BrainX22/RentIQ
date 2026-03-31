@@ -21,11 +21,11 @@ describe("sitemap()", () => {
     expect(entries.every((e) => e.url.startsWith("https://getrentiq.com"))).toBe(true);
   });
 
-  it("returns exactly 5 URLs (homepage, calculator, compare, login, signup)", async () => {
+  it("returns exactly 6 URLs (homepage, calculator, how-it-works, compare, login, signup)", async () => {
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://myapp.com");
     const { default: sitemap } = await import("@/app/sitemap");
     const entries = sitemap();
-    expect(entries).toHaveLength(5);
+    expect(entries).toHaveLength(6);
   });
 
   it("includes /compare with priority 0.7 and monthly changeFrequency", async () => {

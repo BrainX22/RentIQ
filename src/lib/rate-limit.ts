@@ -144,6 +144,33 @@ function general() {
   });
 }
 
+function profileRead() {
+  return new Ratelimit({
+    redis: getRedis(),
+    limiter: Ratelimit.slidingWindow(30, "5 m"),
+    prefix: "rl:profile:r",
+    analytics: true,
+  });
+}
+
+function profileMutate() {
+  return new Ratelimit({
+    redis: getRedis(),
+    limiter: Ratelimit.slidingWindow(10, "15 m"),
+    prefix: "rl:profile:w",
+    analytics: true,
+  });
+}
+
+function accountDelete() {
+  return new Ratelimit({
+    redis: getRedis(),
+    limiter: Ratelimit.slidingWindow(3, "60 m"),
+    prefix: "rl:account:del",
+    analytics: true,
+  });
+}
+
 // Cache limiter instances after first use (module-level cache)
 const _cache: Partial<Record<string, Ratelimit>> = {};
 
@@ -183,6 +210,16 @@ export function resolveRateLimiter(pathname: string, method: string): Ratelimit 
     return method === "GET"
       ? cached("prop:r", propertiesRead)
       : cached("prop:w", propertiesMutate);
+  }
+
+  if (pathname === "/api/profile") {
+    return method === "GET"
+      ? cached("profile:r", profileRead)
+      : cached("profile:w", profileMutate);
+  }
+
+  if (pathname === "/api/account/delete") {
+    return cached("account:del", accountDelete);
   }
 
   return cached("general", general);

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BarChart3 } from "lucide-react";
+import Image from "next/image";
 
 export default function Footer() {
   return (
@@ -8,9 +8,7 @@ export default function Footer() {
         <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
           {/* Brand */}
           <Link href="/" className="flex items-center gap-2 group">
-            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-orange-50 ring-1 ring-orange-200">
-              <BarChart3 className="h-3.5 w-3.5 text-orange-500" />
-            </div>
+            <Image src="/logo.png" alt="RentIQ logo" width={24} height={24} className="rounded" />
             <span className="text-sm font-semibold text-gray-900">RentIQ</span>
           </Link>
 

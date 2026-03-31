@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Hero from "@/components/landing/Hero";
 import SocialProof from "@/components/landing/SocialProof";
-import FeatureHighlights from "@/components/landing/FeatureHighlights";
+import ProductWalkthrough from "@/components/landing/ProductWalkthrough";
 import PricingSection from "@/components/landing/PricingSection";
 
 export const metadata: Metadata = {
@@ -21,7 +21,7 @@ export default function Home() {
     <div>
       <Hero />
       <SocialProof />
-      <FeatureHighlights />
+      <ProductWalkthrough />
       <PricingSection />
     </div>
   );

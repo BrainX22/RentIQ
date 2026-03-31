@@ -125,6 +125,29 @@ export function calculateBreakEvenRent(
   return fixedCosts / denominator;
 }
 
+/**
+ * Debt Service Coverage Ratio = NOI / Annual Debt Service.
+ * Lenders typically require DSCR >= 1.25.
+ * Returns null when there is no debt (cash purchase — DSCR not applicable).
+ */
+export function calculateDSCR(noi: number, annualDebtService: number): number | null {
+  if (annualDebtService <= 0) return null;
+  return noi / annualDebtService;
+}
+
+/**
+ * True Cash-on-Cash Return = (Annual Cash Flow / Total Cash Invested) × 100
+ * where Total Cash Invested = Down Payment + Closing Costs.
+ * Returns null when total cash invested is 0 or negative.
+ */
+export function calculateTrueCashOnCashReturn(
+  annualCashFlow: number,
+  totalCashInvested: number
+): number | null {
+  if (totalCashInvested <= 0) return null;
+  return (annualCashFlow / totalCashInvested) * 100;
+}
+
 function gradeFromScore(score: number): DealGrade {
   if (score >= 80) return "A";
   if (score >= 65) return "B";
@@ -192,6 +215,8 @@ export function calculateAll(inputs: CalculatorInputs): CalculatorResults {
     hoaFeesMonthly,
     maintenancePercent,
     vacancyPercent,
+    propertyManagementPercent,
+    closingCostsPercent,
   } = inputs;
 
   // ── derived inputs ──────────────────────────────────────────────────────────
@@ -199,22 +224,27 @@ export function calculateAll(inputs: CalculatorInputs): CalculatorResults {
   const principal = propertyPrice - downPaymentAmount;
   const monthlyPropertyTax = propertyTaxYearly / 12;
   const monthlyMaintenance = monthlyRent * (maintenancePercent / 100);
+  const monthlyPropertyManagement = monthlyRent * (propertyManagementPercent / 100);
   const vacancyLoss = monthlyRent * (vacancyPercent / 100);
+  const closingCostsAmount = propertyPrice * (closingCostsPercent / 100);
+  const totalCashInvested = downPaymentAmount + closingCostsAmount;
 
   // ── mortgage ────────────────────────────────────────────────────────────────
   const monthlyMortgage = calculateMonthlyMortgage(principal, interestRate, loanTermYears);
 
-  // ── expenses ────────────────────────────────────────────────────────────────
+  // ── expenses (PM fee added to total) ────────────────────────────────────────
   const totalMonthlyExpenses =
     monthlyMortgage +
     monthlyPropertyTax +
     insuranceMonthly +
     hoaFeesMonthly +
     monthlyMaintenance +
+    monthlyPropertyManagement +
     vacancyLoss;
 
   // ── income metrics ──────────────────────────────────────────────────────────
-  const noi = calculateNOI(
+  // Base NOI from existing function (excludes PM fee), then subtract PM fee
+  const baseNoi = calculateNOI(
     monthlyRent,
     monthlyPropertyTax,
     insuranceMonthly,
@@ -222,13 +252,16 @@ export function calculateAll(inputs: CalculatorInputs): CalculatorResults {
     maintenancePercent,
     vacancyPercent
   );
+  const noi = baseNoi - monthlyPropertyManagement * 12;
 
   const monthlyCashFlow = calculateMonthlyCashFlow(monthlyRent, totalMonthlyExpenses);
   const annualCashFlow = monthlyCashFlow * 12;
 
   // ── return metrics ──────────────────────────────────────────────────────────
   const cashOnCashReturn = calculateCashOnCashReturn(annualCashFlow, downPaymentAmount);
+  const trueCashOnCashReturn = calculateTrueCashOnCashReturn(annualCashFlow, totalCashInvested);
   const capRate = calculateCapRate(noi, propertyPrice);
+  const dscr = calculateDSCR(noi, monthlyMortgage * 12);
 
   // ── risk metric ─────────────────────────────────────────────────────────────
   const breakEvenRent = calculateBreakEvenRent(
@@ -236,7 +269,7 @@ export function calculateAll(inputs: CalculatorInputs): CalculatorResults {
     monthlyPropertyTax,
     insuranceMonthly,
     hoaFeesMonthly,
-    maintenancePercent,
+    maintenancePercent + propertyManagementPercent,
     vacancyPercent
   );
 
@@ -244,14 +277,19 @@ export function calculateAll(inputs: CalculatorInputs): CalculatorResults {
     monthlyMortgage,
     monthlyPropertyTax,
     monthlyMaintenance,
+    monthlyPropertyManagement,
     vacancyLoss,
     totalMonthlyExpenses,
     noi,
     monthlyCashFlow,
     annualCashFlow,
     downPaymentAmount,
+    closingCostsAmount,
+    totalCashInvested,
     cashOnCashReturn,
+    trueCashOnCashReturn,
     capRate,
+    dscr,
     breakEvenRent,
   };
 }

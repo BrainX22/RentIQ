@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
+  BookOpen,
   Calculator,
   GitCompareArrows,
   LayoutDashboard,
@@ -12,6 +14,7 @@ import {
   LogIn,
   LogOut,
   Menu,
+  Settings,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -28,17 +31,29 @@ import {
 const BASE_NAV_LINKS = [
   { href: "/calculator", label: "Calculator", icon: Calculator },
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/how-it-works", label: "How it works", icon: BookOpen },
 ];
 
 const COMPARE_LINK = { href: "/compare", label: "Compare", icon: GitCompareArrows };
+const SETTINGS_LINK = { href: "/settings", label: "Settings", icon: Settings };
 
 export default function Navbar() {
   const pathname = usePathname();
   const { user, isLoading } = useUser();
 
-  // Show Compare link only to authenticated users — free users land on the Pro upsell card
-  const navLinks = user ? [...BASE_NAV_LINKS, COMPARE_LINK] : BASE_NAV_LINKS;
+  // Show Compare + Settings links only to authenticated users
+  const navLinks = user ? [...BASE_NAV_LINKS, COMPARE_LINK, SETTINGS_LINK] : BASE_NAV_LINKS;
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const getDisplayName = (): string => {
+    const metadata = user?.user_metadata as Record<string, unknown> | undefined;
+    if (metadata?.display_name && typeof metadata.display_name === "string") {
+      return metadata.display_name;
+    }
+    const email = user?.email ?? "";
+    const localPart = email.split("@")[0] ?? "";
+    return localPart.charAt(0).toUpperCase() + localPart.slice(1);
+  };
 
   const handleLogout = async () => {
     const supabase = createClient();
@@ -58,9 +73,7 @@ export default function Navbar() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 group">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-50 ring-1 ring-orange-200 transition-all group-hover:bg-orange-100">
-            <BarChart3 className="h-4 w-4 text-orange-500" />
-          </div>
+          <Image src="/logo.png" alt="RentIQ logo" width={32} height={32} className="rounded-lg" />
           <span className="text-lg font-semibold tracking-tight text-gray-900">
             RentIQ
           </span>
@@ -95,7 +108,7 @@ export default function Navbar() {
           ) : user ? (
             <>
               <span className="hidden rounded-md border border-orange-100 bg-orange-50 px-3 py-1.5 text-sm text-orange-600 sm:inline-block">
-                {user.email}
+                Welcome, {getDisplayName()}
               </span>
               <button
                 type="button"
@@ -127,7 +140,7 @@ export default function Navbar() {
             <SheetContent side="right" className="w-72 bg-white">
               <SheetHeader>
                 <SheetTitle className="flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4 text-orange-500" />
+                  <Image src="/logo.png" alt="RentIQ logo" width={24} height={24} className="rounded" />
                   RentIQ
                 </SheetTitle>
               </SheetHeader>
@@ -159,13 +172,13 @@ export default function Navbar() {
                 ) : user ? (
                   <>
                     <p className="truncate px-3 py-1 text-sm text-gray-500">
-                      {user.email}
+                      Welcome, {getDisplayName()}
                     </p>
                     <button
                       type="button"
                       onClick={() => {
                         setMobileOpen(false);
-                        handleLogout();
+                        void handleLogout();
                       }}
                       className="mt-1 flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                     >

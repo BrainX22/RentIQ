@@ -92,3 +92,68 @@
     @apply font-sans;
   }
 }
+
+/* ── Print styles ─────────────────────────────────────────────────────────── */
+
+/* Only visible in print */
+.print-only {
+  display: none;
+}
+
+@media print {
+  /* Hide navigation and interactive UI */
+  .no-print,
+  nav,
+  footer {
+    display: none !important;
+  }
+
+  /* Show print-only elements (header/footer) */
+  .print-only {
+    display: block !important;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 12px;
+  }
+
+  /* Collapse the two-column layout to single column */
+  .calculator-grid {
+    display: block !important;
+  }
+
+  /* Hide the inputs panel — print shows results only */
+  .calculator-inputs-col {
+    display: none !important;
+  }
+
+  /* Results column: full width */
+  .calculator-results-col {
+    width: 100% !important;
+    max-width: 100% !important;
+    position: static !important;
+  }
+
+  /* Hide Max-tier components from print */
+  .no-print-max {
+    display: none !important;
+  }
+
+  /* Remove card shadows for cleaner print */
+  .shadow-sm,
+  .shadow-lg {
+    box-shadow: none !important;
+  }
+
+  /* Compact spacing */
+  .space-y-4 > * + * {
+    margin-top: 0.5rem !important;
+  }
+
+  /* Page break control */
+  .print-break-avoid {
+    break-inside: avoid;
+  }
+}

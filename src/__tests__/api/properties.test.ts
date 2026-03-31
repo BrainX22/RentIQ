@@ -59,6 +59,8 @@ const VALID_INPUTS = {
   hoaFeesMonthly: 0,
   maintenancePercent: 10,
   vacancyPercent: 8,
+  propertyManagementPercent: 0,
+  closingCostsPercent: 0,
 };
 
 function makePostRequest(body: unknown) {

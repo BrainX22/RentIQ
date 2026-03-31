@@ -18,6 +18,8 @@ const BASE_INPUTS: CalculatorInputs = {
   hoaFeesMonthly: 0,          // zero — should NOT render as a line item
   maintenancePercent: 10,
   vacancyPercent: 8,
+  propertyManagementPercent: 0,
+  closingCostsPercent: 0,
 };
 
 const INPUTS_WITH_HOA: CalculatorInputs = {

@@ -37,7 +37,9 @@ export const metadata: Metadata = {
       "Calculate cash flow, cap rate, and cash-on-cash return for any rental property. Free for real estate investors.",
   },
   icons: {
-    icon: "/favicon.png",
+    icon: "/icon.png",
+    shortcut: "/icon.png",
+    apple: "/icon.png",
   },
 };
 

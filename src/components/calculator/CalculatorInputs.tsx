@@ -10,6 +10,7 @@ import type { CalculatorInputs } from "@/types";
 interface Props {
   inputs: CalculatorInputs;
   setInput: (field: keyof CalculatorInputs, value: number) => void;
+  onReset?: () => void;
 }
 
 // ─── Reusable sub-inputs ──────────────────────────────────────────────────────
@@ -121,7 +122,7 @@ function getRequiredFieldError(field: RequiredField, value: number): string | un
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function CalculatorInputs({ inputs, setInput }: Props) {
+export default function CalculatorInputs({ inputs, setInput, onReset }: Props) {
   const [touched, setTouched] = useState<Partial<Record<keyof CalculatorInputs, boolean>>>({});
 
   const handleBlur = (field: keyof CalculatorInputs) => {
@@ -135,6 +136,18 @@ export default function CalculatorInputs({ inputs, setInput }: Props) {
 
   return (
     <div className="space-y-8">
+      {onReset && (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            aria-label="Reset to defaults"
+            onClick={onReset}
+            className="text-xs text-gray-400 hover:text-gray-600"
+          >
+            Reset to defaults
+          </button>
+        </div>
+      )}
       {/* ── Purchase ─────────────────────────────────────────────────────────── */}
       <section>
         <h3 className="mb-4 text-xs font-semibold uppercase tracking-widest text-gray-400">
@@ -179,6 +192,25 @@ export default function CalculatorInputs({ inputs, setInput }: Props) {
               step={1}
               className="py-1"
             />
+          </div>
+
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="closingCostsPercent" className="text-sm text-gray-600">
+                Closing Costs
+              </Label>
+              <span className="font-mono text-sm text-gray-500">
+                {inputs.closingCostsPercent}% of price
+              </span>
+            </div>
+            <PercentInput
+              id="closingCostsPercent"
+              value={inputs.closingCostsPercent}
+              onChange={(v) => setInput("closingCostsPercent", v)}
+              max={10}
+              step={0.5}
+            />
+            <p className="text-xs text-gray-400">Typically 2–5% of purchase price</p>
           </div>
         </div>
       </section>
@@ -336,6 +368,25 @@ export default function CalculatorInputs({ inputs, setInput }: Props) {
               max={50}
               step={1}
             />
+          </div>
+
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="propertyManagementPercent" className="text-sm text-gray-600">
+                Property Management
+              </Label>
+              <span className="font-mono text-sm text-gray-500">
+                {inputs.propertyManagementPercent}% of rent
+              </span>
+            </div>
+            <PercentInput
+              id="propertyManagementPercent"
+              value={inputs.propertyManagementPercent}
+              onChange={(v) => setInput("propertyManagementPercent", v)}
+              max={20}
+              step={1}
+            />
+            <p className="text-xs text-gray-400">8–12% if using a property manager</p>
           </div>
         </div>
       </section>

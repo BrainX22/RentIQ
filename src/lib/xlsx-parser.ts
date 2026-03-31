@@ -27,6 +27,8 @@ const FIELD_SYNONYMS: Record<keyof CalculatorInputs, string[]> = {
   hoaFeesMonthly: ["hoa", "hoafees", "hoafeesmonthly", "monthlyhoa"],
   maintenancePercent: ["maintenance", "maintenancepercent", "maint"],
   vacancyPercent: ["vacancy", "vacancypercent", "vacancyrate"],
+  propertyManagementPercent: ["propertymanagement", "managementfee", "pmfee", "managementpercent", "pm"],
+  closingCostsPercent: ["closingcosts", "closingcostspercent", "closingfee", "closing"],
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

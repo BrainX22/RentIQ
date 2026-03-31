@@ -19,6 +19,8 @@ const POSITIVE_INPUTS: CalculatorInputs = {
   hoaFeesMonthly: 0,
   maintenancePercent: 10,
   vacancyPercent: 8,
+  propertyManagementPercent: 0,
+  closingCostsPercent: 0,
 };
 
 const NEGATIVE_INPUTS: CalculatorInputs = {
@@ -94,9 +96,9 @@ describe("CalculatorResults", () => {
 
   it("renders the formatted cash-on-cash return value", () => {
     render(<CalculatorResults results={POSITIVE_RESULTS} />);
-    expect(
-      screen.getByText(formatPercent(POSITIVE_RESULTS.cashOnCashReturn!))
-    ).toBeInTheDocument();
+    // CoC and True CoC show the same value when closing costs = 0
+    const matches = screen.getAllByText(formatPercent(POSITIVE_RESULTS.cashOnCashReturn!));
+    expect(matches.length).toBeGreaterThanOrEqual(1);
   });
 
   it("shows ∞ when cashOnCashReturn is null (zero down payment)", () => {
@@ -131,11 +133,61 @@ describe("CalculatorResults", () => {
     expect(screen.getByText(/Monthly Mortgage/i)).toBeInTheDocument();
   });
 
+  // ── Phase 4: New metric cards ─────────────────────────────────────────────
+
+  it("renders True Cash-on-Cash metric label", () => {
+    render(<CalculatorResults results={POSITIVE_RESULTS} />);
+    expect(screen.getByText(/True Cash-on-Cash/i)).toBeInTheDocument();
+  });
+
+  it("renders DSCR metric label", () => {
+    render(<CalculatorResults results={POSITIVE_RESULTS} />);
+    expect(screen.getByText("DSCR")).toBeInTheDocument();
+  });
+
+  it("renders DSCR value in Nx format", () => {
+    render(<CalculatorResults results={POSITIVE_RESULTS} />);
+    expect(screen.getByText(/\d+\.\d{2}x/)).toBeInTheDocument();
+  });
+
+  it("renders Total Cash Invested metric label", () => {
+    render(<CalculatorResults results={POSITIVE_RESULTS} />);
+    expect(screen.getByText(/Total Cash Invested/i)).toBeInTheDocument();
+  });
+
+  it("shows DSCR in emerald when >= 1.25", () => {
+    const goodDscr = { ...POSITIVE_RESULTS, dscr: 1.5 };
+    render(<CalculatorResults results={goodDscr} />);
+    const dscrValue = screen.getByText(/1\.50x/);
+    expect(dscrValue.className).toMatch(/emerald/);
+  });
+
+  it("shows DSCR in amber when between 1.0 and 1.25", () => {
+    const okDscr = { ...POSITIVE_RESULTS, dscr: 1.1 };
+    render(<CalculatorResults results={okDscr} />);
+    const dscrValue = screen.getByText(/1\.10x/);
+    expect(dscrValue.className).toMatch(/amber/);
+  });
+
+  it("shows DSCR in red when below 1.0", () => {
+    const badDscr = { ...POSITIVE_RESULTS, dscr: 0.8 };
+    render(<CalculatorResults results={badDscr} />);
+    const dscrValue = screen.getByText(/0\.80x/);
+    expect(dscrValue.className).toMatch(/red/);
+  });
+
+  it("shows DSCR as N/A in gray when null (cash purchase)", () => {
+    const cashPurchase = { ...POSITIVE_RESULTS, dscr: null };
+    render(<CalculatorResults results={cashPurchase} />);
+    const dscrValue = screen.getByText("N/A");
+    expect(dscrValue.className).toMatch(/gray/);
+  });
+
   it("renders the formatted down payment amount", () => {
     render(<CalculatorResults results={POSITIVE_RESULTS} />);
-    expect(
-      screen.getByText(formatCurrency(POSITIVE_RESULTS.downPaymentAmount))
-    ).toBeInTheDocument();
+    // Down Payment and Total Cash Invested show the same value when closing costs = 0
+    const matches = screen.getAllByText(formatCurrency(POSITIVE_RESULTS.downPaymentAmount));
+    expect(matches.length).toBeGreaterThanOrEqual(1);
   });
 
   it("renders the formatted monthly mortgage", () => {
@@ -148,11 +200,15 @@ describe("CalculatorResults", () => {
   // ── Metric tooltips ──────────────────────────────────────────────────────────
 
   describe("Metric tooltips", () => {
-    it("renders an info button for each of the 6 metric cards", () => {
+    it("renders an info button for each of the 9 metric cards", () => {
       render(<CalculatorResults results={POSITIVE_RESULTS} />);
 
       expect(
         screen.getByRole("button", { name: /what is cash-on-cash return\?/i })
+      ).toBeInTheDocument();
+
+      expect(
+        screen.getByRole("button", { name: /what is true cash-on-cash\?/i })
       ).toBeInTheDocument();
 
       expect(
@@ -168,7 +224,15 @@ describe("CalculatorResults", () => {
       ).toBeInTheDocument();
 
       expect(
+        screen.getByRole("button", { name: /what is dscr\?/i })
+      ).toBeInTheDocument();
+
+      expect(
         screen.getByRole("button", { name: /what is down payment\?/i })
+      ).toBeInTheDocument();
+
+      expect(
+        screen.getByRole("button", { name: /what is total cash invested\?/i })
       ).toBeInTheDocument();
 
       expect(
@@ -187,7 +251,7 @@ describe("CalculatorResults", () => {
 
       expect(
         await screen.findByText(
-          /annual cash flow divided by total cash invested/i
+          /annual cash flow divided by down payment only/i
         )
       ).toBeInTheDocument();
     });

@@ -14,6 +14,8 @@ const defaultInputs: CalculatorInputsType = {
   hoaFeesMonthly: 0,
   maintenancePercent: 10,
   vacancyPercent: 5,
+  propertyManagementPercent: 0,
+  closingCostsPercent: 0,
 };
 
 describe("CalculatorInputs inline validation", () => {

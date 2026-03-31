@@ -22,6 +22,7 @@ export default function ExpenseBreakdown({ inputs, results }: Props) {
     { label: "Insurance", value: inputs.insuranceMonthly },
     { label: "HOA", value: inputs.hoaFeesMonthly },
     { label: "Maintenance", value: results.monthlyMaintenance },
+    { label: "Property Mgmt", value: results.monthlyPropertyManagement },
     { label: "Vacancy Loss", value: results.vacancyLoss },
   ];
 

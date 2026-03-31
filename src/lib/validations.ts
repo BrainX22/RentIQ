@@ -1,18 +1,20 @@
 import { z } from "zod";
 
 export const calculatorInputsSchema = z.object({
-  propertyPrice: z.number().positive(),
+  propertyPrice: z.number().positive().max(100_000_000),
   downPaymentPercent: z.number().min(0).max(100),
   interestRate: z.number().min(0).max(30),
   loanTermYears: z.number().refine((v) => [15, 20, 30].includes(v), {
     message: "Loan term must be 15, 20, or 30 years",
   }),
-  monthlyRent: z.number().positive(),
-  propertyTaxYearly: z.number().min(0),
-  insuranceMonthly: z.number().min(0),
-  hoaFeesMonthly: z.number().min(0),
+  monthlyRent: z.number().positive().max(1_000_000),
+  propertyTaxYearly: z.number().min(0).max(10_000_000),
+  insuranceMonthly: z.number().min(0).max(100_000),
+  hoaFeesMonthly: z.number().min(0).max(50_000),
   maintenancePercent: z.number().min(0).max(100),
   vacancyPercent: z.number().min(0).max(100),
+  propertyManagementPercent: z.number().min(0).max(100).default(0),
+  closingCostsPercent: z.number().min(0).max(20).default(0),
 });
 
 export const savePropertySchema = z.object({
@@ -64,4 +66,24 @@ export const compsQuerySchema = z.object({
 /** Body for PATCH /api/deal-matches — dismiss a deal match by ID */
 export const dismissMatchSchema = z.object({
   matchId: z.string().uuid("matchId must be a valid UUID"),
+});
+
+/** Body for PATCH /api/profile — update display name */
+export const displayNameSchema = z.object({
+  display_name: z
+    .string()
+    .trim()
+    .min(1, "Display name is required.")
+    .max(50, "Display name must be 50 characters or fewer.")
+    .regex(
+      /^[^<>"'`;&|\\]+$/,
+      "Display name may not contain special characters."
+    ),
+});
+
+/** Body for POST /api/account/delete — type DELETE to confirm */
+export const deleteAccountSchema = z.object({
+  confirmation: z.literal("DELETE", {
+    message: "Type DELETE to confirm.",
+  }),
 });

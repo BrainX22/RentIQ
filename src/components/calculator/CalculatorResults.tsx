@@ -16,15 +16,19 @@ import {
   DollarSign,
   Info,
   Percent,
+  ShieldCheck,
   TrendingDown,
   TrendingUp,
+  Wallet,
 } from "lucide-react";
 
 // ─── Metric descriptions ──────────────────────────────────────────────────────
 
 const METRIC_DESCRIPTIONS: Record<string, string> = {
   "Cash-on-Cash Return":
-    "Annual cash flow divided by total cash invested. A good rental target is 8–12%.",
+    "Annual cash flow divided by down payment only. See True Cash-on-Cash for a more accurate figure including closing costs.",
+  "True Cash-on-Cash":
+    "Annual cash flow divided by total cash invested (down payment + closing costs). More accurate than standard CoC.",
   "Annual Cash Flow":
     "Total rent collected minus all expenses and mortgage payments over 12 months.",
   "Cap Rate":
@@ -33,8 +37,12 @@ const METRIC_DESCRIPTIONS: Record<string, string> = {
     "Gross rent minus operating expenses (no mortgage). Used to compare properties.",
   "Down Payment":
     "Upfront cash required at purchase based on your down payment percentage.",
+  "Total Cash Invested":
+    "Down payment plus closing costs — your total out-of-pocket at purchase.",
   "Monthly Mortgage":
     "Principal + interest payment based on loan amount, rate, and term.",
+  "DSCR":
+    "Debt Service Coverage Ratio — NOI divided by annual mortgage payments. Lenders require ≥ 1.25. Below 1.0 means rent doesn't cover the mortgage.",
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -51,41 +59,46 @@ interface MetricCardProps {
   icon: React.ReactNode;
   colorize?: boolean;
   positive?: boolean;
+  /** Override the auto green/red with a custom color class (e.g. DSCR amber state). */
+  colorClass?: string;
 }
 
 // ─── MetricCard ───────────────────────────────────────────────────────────────
 
-function MetricCard({ label, value, icon, colorize = false, positive = true }: MetricCardProps) {
+function MetricCard({ label, value, icon, colorize = false, positive = true, colorClass }: MetricCardProps) {
   const description = METRIC_DESCRIPTIONS[label];
 
+  const valueColor = colorClass
+    ? colorClass
+    : colorize
+      ? (positive ? "text-emerald-600" : "text-red-600")
+      : "text-gray-900";
+
   return (
-    <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
       {/* Use div+span so the TooltipTrigger button is never nested inside a <p> */}
-      <div className="flex items-center gap-1">
-        <span className="text-xs font-medium uppercase tracking-wider text-gray-400">{label}</span>
-        {description && (
-          <Tooltip>
-            <TooltipTrigger
-              aria-label={`What is ${label}?`}
-              className="rounded text-gray-300 transition-colors hover:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
-            >
-              <Info className="h-3 w-3" />
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{description}</p>
-            </TooltipContent>
-          </Tooltip>
-        )}
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-1">
+          <span className="text-xs font-medium uppercase tracking-wider text-gray-400">{label}</span>
+          {description && (
+            <Tooltip>
+              <TooltipTrigger
+                aria-label={`What is ${label}?`}
+                className="rounded text-gray-300 transition-colors hover:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+              >
+                <Info className="h-3 w-3" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{description}</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
+        </div>
+        <div className="shrink-0 text-gray-300">{icon}</div>
       </div>
-      <p
-        className={cn(
-          "mt-1.5 font-mono text-lg font-bold",
-          colorize ? (positive ? "text-emerald-600" : "text-red-600") : "text-gray-900"
-        )}
-      >
+      <p className={cn("mt-1.5 font-mono text-lg font-bold", valueColor)}>
         {value}
       </p>
-      <div className="absolute right-3 top-3 text-gray-300">{icon}</div>
     </div>
   );
 }
@@ -97,16 +110,29 @@ export default function CalculatorResults({ results, marketMedian }: Props) {
   const animMonthlyCashFlow = useAnimatedNumber(results.monthlyCashFlow);
   const animAnnualCashFlow = useAnimatedNumber(results.annualCashFlow);
   const animCocReturn = useAnimatedNumber(results.cashOnCashReturn ?? 0);
+  const animTrueCocReturn = useAnimatedNumber(results.trueCashOnCashReturn ?? 0);
   const animCapRate = useAnimatedNumber(results.capRate);
   const animNoi = useAnimatedNumber(results.noi);
   const animDownPayment = useAnimatedNumber(results.downPaymentAmount);
+  const animTotalCashInvested = useAnimatedNumber(results.totalCashInvested);
   const animMonthlyMortgage = useAnimatedNumber(results.monthlyMortgage);
+  const animDscr = useAnimatedNumber(results.dscr ?? 0);
 
   // Drive colour from the animated value so the card colour tracks the number
   // animation rather than snapping ahead of it.
   const isPositive = animMonthlyCashFlow >= 0;
   const cocReturn = results.cashOnCashReturn;
+  const trueCocReturn = results.trueCashOnCashReturn;
   const animCocIsPositive = animCocReturn >= 0;
+  const animTrueCocIsPositive = animTrueCocReturn >= 0;
+
+  // DSCR color: green >= 1.25 (lender-approvable), amber 1.0-1.25, red < 1.0, neutral when N/A
+  const dscrColor =
+    results.dscr === null ? "text-gray-500"
+    : results.dscr >= 1.25 ? "text-emerald-600"
+    : results.dscr >= 1.0 ? "text-amber-600"
+    : "text-red-600";
+
   const dealScore = calculateDealScore({
     monthlyCashFlow: results.monthlyCashFlow,
     cashOnCashReturn: results.cashOnCashReturn,
@@ -179,13 +205,20 @@ export default function CalculatorResults({ results, marketMedian }: Props) {
       {/* Single TooltipProvider wraps all cards so they share one delay group —  */}
       {/* once one tooltip opens, the rest open instantly without re-triggering.  */}
       <TooltipProvider>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         <MetricCard
           label="Cash-on-Cash Return"
           value={cocReturn !== null ? formatPercent(animCocReturn) : "∞"}
           icon={<Percent className="h-4 w-4" />}
           colorize
           positive={cocReturn !== null ? animCocIsPositive : true}
+        />
+        <MetricCard
+          label="True Cash-on-Cash"
+          value={trueCocReturn !== null ? formatPercent(animTrueCocReturn) : "∞"}
+          icon={<Percent className="h-4 w-4" />}
+          colorize
+          positive={trueCocReturn !== null ? animTrueCocIsPositive : true}
         />
         <MetricCard
           label="Annual Cash Flow"
@@ -207,9 +240,20 @@ export default function CalculatorResults({ results, marketMedian }: Props) {
           positive={animNoi >= 0}
         />
         <MetricCard
+          label="DSCR"
+          value={results.dscr !== null ? `${animDscr.toFixed(2)}x` : "N/A"}
+          icon={<ShieldCheck className="h-4 w-4" />}
+          colorClass={dscrColor}
+        />
+        <MetricCard
           label="Down Payment"
           value={formatCurrency(animDownPayment)}
           icon={<ArrowUpDown className="h-4 w-4" />}
+        />
+        <MetricCard
+          label="Total Cash Invested"
+          value={formatCurrency(animTotalCashInvested)}
+          icon={<Wallet className="h-4 w-4" />}
         />
         <MetricCard
           label="Monthly Mortgage"

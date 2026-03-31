@@ -8,6 +8,8 @@ import {
   calculateCapRate,
   calculateBreakEvenRent,
   calculateDealScore,
+  calculateDSCR,
+  calculateTrueCashOnCashReturn,
   calculateAll,
 } from "@/lib/calculations";
 import type { CalculatorInputs } from "@/types";
@@ -398,6 +400,66 @@ describe("calculateDealScore", () => {
   });
 });
 
+// ─── calculateDSCR ───────────────────────────────────────────────────────────
+
+describe("calculateDSCR", () => {
+  it("returns NOI / annualDebtService", () => {
+    // NOI=$18,000, annual debt=$12,000 → DSCR = 1.5
+    expect(calculateDSCR(18_000, 12_000)).toBeCloseTo(1.5, 4);
+  });
+
+  it("returns null when annualDebtService is 0 (cash purchase)", () => {
+    expect(calculateDSCR(18_000, 0)).toBeNull();
+  });
+
+  it("returns null when annualDebtService is negative", () => {
+    expect(calculateDSCR(18_000, -1)).toBeNull();
+  });
+
+  it("DSCR >= 1.25 for lender-approvable property", () => {
+    const result = calculateDSCR(18_000, 12_000);
+    expect(result).toBeGreaterThanOrEqual(1.25);
+  });
+
+  it("DSCR < 1.0 when property does not cover debt", () => {
+    // NOI=$10,000, annual debt=$12,000 → 0.833
+    expect(calculateDSCR(10_000, 12_000)).toBeLessThan(1.0);
+  });
+
+  it("DSCR = 1.0 when NOI exactly equals debt service", () => {
+    expect(calculateDSCR(12_000, 12_000)).toBeCloseTo(1.0, 4);
+  });
+});
+
+// ─── calculateTrueCashOnCashReturn ──────────────────────────────────────────
+
+describe("calculateTrueCashOnCashReturn", () => {
+  it("returns annualCashFlow / totalCashInvested * 100", () => {
+    // $6,000 / $46,000 = 13.04%
+    expect(calculateTrueCashOnCashReturn(6_000, 46_000)).toBeCloseTo(13.04, 1);
+  });
+
+  it("returns null when totalCashInvested is 0", () => {
+    expect(calculateTrueCashOnCashReturn(6_000, 0)).toBeNull();
+  });
+
+  it("returns null when totalCashInvested is negative", () => {
+    expect(calculateTrueCashOnCashReturn(6_000, -1)).toBeNull();
+  });
+
+  it("closing costs lower true CoC vs standard CoC", () => {
+    const standardCoC = (6_000 / 40_000) * 100; // 15%
+    const trueCoC = calculateTrueCashOnCashReturn(6_000, 46_000); // ~13.04%
+    expect(trueCoC).not.toBeNull();
+    expect(trueCoC!).toBeLessThan(standardCoC);
+  });
+
+  it("returns negative for negative cash flow", () => {
+    const result = calculateTrueCashOnCashReturn(-3_000, 50_000);
+    expect(result).toBeLessThan(0);
+  });
+});
+
 // ─── calculateAll (integration) ───────────────────────────────────────────────
 
 describe("calculateAll", () => {
@@ -413,6 +475,8 @@ describe("calculateAll", () => {
     hoaFeesMonthly: 0,
     maintenancePercent: 10,   // $150/mo
     vacancyPercent: 8,        // $120/mo
+    propertyManagementPercent: 0,
+    closingCostsPercent: 0,
   };
 
   it("returns all expected fields", () => {
@@ -420,14 +484,19 @@ describe("calculateAll", () => {
     expect(result).toHaveProperty("monthlyMortgage");
     expect(result).toHaveProperty("monthlyPropertyTax");
     expect(result).toHaveProperty("monthlyMaintenance");
+    expect(result).toHaveProperty("monthlyPropertyManagement");
     expect(result).toHaveProperty("vacancyLoss");
     expect(result).toHaveProperty("totalMonthlyExpenses");
     expect(result).toHaveProperty("noi");
     expect(result).toHaveProperty("monthlyCashFlow");
     expect(result).toHaveProperty("annualCashFlow");
     expect(result).toHaveProperty("downPaymentAmount");
+    expect(result).toHaveProperty("closingCostsAmount");
+    expect(result).toHaveProperty("totalCashInvested");
     expect(result).toHaveProperty("cashOnCashReturn");
+    expect(result).toHaveProperty("trueCashOnCashReturn");
     expect(result).toHaveProperty("capRate");
+    expect(result).toHaveProperty("dscr");
     expect(result).toHaveProperty("breakEvenRent");
   });
 
@@ -508,5 +577,109 @@ describe("calculateAll", () => {
     // cashOnCashReturn is a real number (not null) — down payment is the full price
     expect(result.cashOnCashReturn).not.toBeNull();
     expect(result.cashOnCashReturn).toBeGreaterThan(0); // positive cash flow / 200k
+  });
+
+  // ── Phase 4: PM fee, closing costs, DSCR, true CoC ────────────────────────
+
+  it("defaults produce identical results (backwards compat): PM=0, closing=0", () => {
+    const result = calculateAll(referenceInputs);
+    expect(result.monthlyPropertyManagement).toBe(0);
+    expect(result.closingCostsAmount).toBe(0);
+    expect(result.totalCashInvested).toBe(result.downPaymentAmount);
+    // trueCashOnCashReturn === cashOnCashReturn when closing costs are 0
+    expect(result.trueCashOnCashReturn).toBeCloseTo(result.cashOnCashReturn!, 4);
+  });
+
+  it("computes monthlyPropertyManagement as percent of rent", () => {
+    const withPM: CalculatorInputs = { ...referenceInputs, propertyManagementPercent: 10 };
+    const result = calculateAll(withPM);
+    expect(result.monthlyPropertyManagement).toBe(150); // 10% of $1500
+  });
+
+  it("PM fee is included in totalMonthlyExpenses", () => {
+    const withoutPM = calculateAll(referenceInputs);
+    const withPM = calculateAll({ ...referenceInputs, propertyManagementPercent: 10 });
+    expect(withPM.totalMonthlyExpenses).toBeCloseTo(withoutPM.totalMonthlyExpenses + 150, 2);
+  });
+
+  it("PM fee reduces NOI (it is an operating expense)", () => {
+    const withoutPM = calculateAll(referenceInputs);
+    const withPM = calculateAll({ ...referenceInputs, propertyManagementPercent: 10 });
+    // PM = $150/mo → $1800/yr reduction in NOI
+    expect(withPM.noi).toBeCloseTo(withoutPM.noi - 1800, 0);
+  });
+
+  it("PM fee reduces monthly and annual cash flow", () => {
+    const withoutPM = calculateAll(referenceInputs);
+    const withPM = calculateAll({ ...referenceInputs, propertyManagementPercent: 10 });
+    expect(withPM.monthlyCashFlow).toBeCloseTo(withoutPM.monthlyCashFlow - 150, 2);
+    expect(withPM.annualCashFlow).toBeCloseTo(withoutPM.annualCashFlow - 1800, 2);
+  });
+
+  it("computes closingCostsAmount as percent of price", () => {
+    const withClosing: CalculatorInputs = { ...referenceInputs, closingCostsPercent: 3 };
+    const result = calculateAll(withClosing);
+    expect(result.closingCostsAmount).toBe(6_000); // 3% of $200,000
+  });
+
+  it("computes totalCashInvested = downPayment + closingCosts", () => {
+    const withClosing: CalculatorInputs = { ...referenceInputs, closingCostsPercent: 3 };
+    const result = calculateAll(withClosing);
+    expect(result.totalCashInvested).toBe(46_000); // $40k down + $6k closing
+  });
+
+  it("trueCashOnCashReturn uses totalCashInvested as denominator", () => {
+    const withClosing: CalculatorInputs = { ...referenceInputs, closingCostsPercent: 3 };
+    const result = calculateAll(withClosing);
+    const expected = (result.annualCashFlow / 46_000) * 100;
+    expect(result.trueCashOnCashReturn).toBeCloseTo(expected, 4);
+  });
+
+  it("trueCashOnCashReturn has smaller magnitude than cashOnCashReturn when closing costs > 0", () => {
+    const withClosing: CalculatorInputs = { ...referenceInputs, closingCostsPercent: 3 };
+    const result = calculateAll(withClosing);
+    expect(result.trueCashOnCashReturn).not.toBeNull();
+    expect(result.cashOnCashReturn).not.toBeNull();
+    // With more cash invested (larger denominator), the absolute return % is smaller.
+    // This holds for both positive and negative cash flow.
+    expect(Math.abs(result.trueCashOnCashReturn!)).toBeLessThan(
+      Math.abs(result.cashOnCashReturn!)
+    );
+  });
+
+  it("trueCashOnCashReturn is null when 0% down + 0% closing", () => {
+    const zeroDown: CalculatorInputs = {
+      ...referenceInputs,
+      downPaymentPercent: 0,
+      closingCostsPercent: 0,
+    };
+    const result = calculateAll(zeroDown);
+    expect(result.trueCashOnCashReturn).toBeNull();
+  });
+
+  it("computes DSCR as NOI / annualDebtService", () => {
+    const result = calculateAll(referenceInputs);
+    const annualDebt = result.monthlyMortgage * 12;
+    const expectedDSCR = result.noi / annualDebt;
+    expect(result.dscr).toBeCloseTo(expectedDSCR, 4);
+  });
+
+  it("DSCR is null for cash purchase (no debt service)", () => {
+    const fullCash: CalculatorInputs = { ...referenceInputs, downPaymentPercent: 100 };
+    const result = calculateAll(fullCash);
+    expect(result.dscr).toBeNull();
+  });
+
+  it("PM fee affects DSCR (reduces NOI in numerator)", () => {
+    const withoutPM = calculateAll(referenceInputs);
+    const withPM = calculateAll({ ...referenceInputs, propertyManagementPercent: 10 });
+    expect(withPM.dscr).toBeLessThan(withoutPM.dscr);
+  });
+
+  it("PM fee also factors into breakEvenRent", () => {
+    const withoutPM = calculateAll(referenceInputs);
+    const withPM = calculateAll({ ...referenceInputs, propertyManagementPercent: 10 });
+    // Adding PM fee means you need more rent to break even
+    expect(withPM.breakEvenRent).toBeGreaterThan(withoutPM.breakEvenRent);
   });
 });

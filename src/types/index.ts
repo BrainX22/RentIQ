@@ -9,22 +9,29 @@ export interface CalculatorInputs {
   propertyTaxYearly: number;
   insuranceMonthly: number;
   hoaFeesMonthly: number;
-  maintenancePercent: number; // % of monthly rent
-  vacancyPercent: number;     // % of monthly rent
+  maintenancePercent: number;          // % of monthly rent
+  vacancyPercent: number;              // % of monthly rent
+  propertyManagementPercent: number;   // % of monthly rent, default 0
+  closingCostsPercent: number;         // % of purchase price, default 0
 }
 
 export interface CalculatorResults {
   monthlyMortgage: number;
   monthlyPropertyTax: number;
   monthlyMaintenance: number;
+  monthlyPropertyManagement: number;  // rent × (propertyManagementPercent / 100)
   vacancyLoss: number;
   totalMonthlyExpenses: number;
   noi: number;
   monthlyCashFlow: number;
   annualCashFlow: number;
   downPaymentAmount: number;
-  cashOnCashReturn: number | null; // null when down payment is 0
+  closingCostsAmount: number;          // price × (closingCostsPercent / 100)
+  totalCashInvested: number;           // downPayment + closingCosts
+  cashOnCashReturn: number | null;     // null when down payment is 0
+  trueCashOnCashReturn: number | null; // annualCF / totalCashInvested; null when 0
   capRate: number;
+  dscr: number | null;                  // NOI / annual debt service; null when no debt
   breakEvenRent: number;
 }
 
