@@ -171,6 +171,26 @@ function accountDelete() {
   });
 }
 
+/** Account deletion keyed on user ID — 1 attempt per 24 hours per user.
+ *  Layered on top of the IP-keyed limit to prevent bypass via proxy rotation. */
+function accountDeleteByUser() {
+  return new Ratelimit({
+    redis: getRedis(),
+    limiter: Ratelimit.slidingWindow(1, "24 h"),
+    prefix: "rl:account:del:user",
+    analytics: true,
+  });
+}
+
+function feedbackSubmitFn() {
+  return new Ratelimit({
+    redis: getRedis(),
+    limiter: Ratelimit.slidingWindow(3, "1 h"),
+    prefix: "rl:feedback",
+    analytics: true,
+  });
+}
+
 // Cache limiter instances after first use (module-level cache)
 const _cache: Partial<Record<string, Ratelimit>> = {};
 
@@ -223,6 +243,14 @@ export function resolveRateLimiter(pathname: string, method: string): Ratelimit 
   }
 
   return cached("general", general);
+}
+
+export function getAccountDeleteByUserLimiter(): Ratelimit {
+  return cached("account:del:user", accountDeleteByUser);
+}
+
+export function feedbackSubmit(): Ratelimit {
+  return cached("feedback", feedbackSubmitFn);
 }
 
 /**

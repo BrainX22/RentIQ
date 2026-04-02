@@ -1,14 +1,3 @@
-import Stripe from "stripe";
-
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-
-if (!stripeSecretKey) {
-  throw new Error("Missing STRIPE_SECRET_KEY environment variable.");
-}
-
-const stripe = new Stripe(stripeSecretKey, {
-  apiVersion: "2026-02-25.clover",
-  typescript: true,
-});
-
-export default stripe;
+// DEPRECATED: Stripe has been replaced by LemonSqueezy.
+// This file is retained so the old webhook stub compiles. See lemonsqueezy.ts.
+export default null;

@@ -17,18 +17,72 @@ export type XlsxMapping = Partial<Record<keyof CalculatorInputs, string>>;
 // ─── Field synonyms ───────────────────────────────────────────────────────────
 
 const FIELD_SYNONYMS: Record<keyof CalculatorInputs, string[]> = {
-  propertyPrice: ["price", "propertyprice", "listingprice", "purchaseprice", "ask"],
-  downPaymentPercent: ["downpayment", "downpaymentpercent", "down", "dp"],
-  interestRate: ["interestrate", "rate", "apr", "mortgagerate"],
-  loanTermYears: ["loanterm", "term", "years", "loantermyears", "amortization"],
-  monthlyRent: ["rent", "monthlyrent", "marketrent", "expectedrent"],
-  propertyTaxYearly: ["propertytax", "tax", "propertytaxyearly", "annualtax"],
-  insuranceMonthly: ["insurance", "insurancemonthly", "monthlyinsurance"],
-  hoaFeesMonthly: ["hoa", "hoafees", "hoafeesmonthly", "monthlyhoa"],
-  maintenancePercent: ["maintenance", "maintenancepercent", "maint"],
-  vacancyPercent: ["vacancy", "vacancypercent", "vacancyrate"],
-  propertyManagementPercent: ["propertymanagement", "managementfee", "pmfee", "managementpercent", "pm"],
-  closingCostsPercent: ["closingcosts", "closingcostspercent", "closingfee", "closing"],
+  propertyPrice: [
+    "price", "propertyprice", "listingprice", "purchaseprice", "ask",
+    // Stessa / DealCheck / DIY exports
+    "acquisitionprice", "salesprice", "homeprice", "marketvalue", "fairmarketvalue",
+  ],
+  downPaymentPercent: [
+    "downpayment", "downpaymentpercent", "down", "dp",
+    // % and equity variants
+    "equity", "downpct", "downpaymentpct", "downpmt",
+  ],
+  interestRate: [
+    "interestrate", "rate", "apr", "mortgagerate",
+    // Abbreviated / lender sheet terms
+    "interest", "loanrate", "noterate", "intrate", "annualrate",
+  ],
+  loanTermYears: [
+    "loanterm", "term", "years", "loantermyears", "amortization",
+    // Full-form variants
+    "mortgageterm", "loanperiod", "amortizationperiod", "termyears",
+  ],
+  monthlyRent: [
+    "rent", "monthlyrent", "marketrent", "expectedrent",
+    // Standard RE acronyms (GRI = Gross Rental Income, GSR = Gross Scheduled Rent)
+    "grossrent", "scheduledrent", "gri", "gsr",
+    // Income-labelled columns common in multi-unit sheets
+    "rentalincome", "monthlygrossrent", "monthlyincome", "rents",
+  ],
+  propertyTaxYearly: [
+    "propertytax", "tax", "propertytaxyearly", "annualtax",
+    // Plural and verbose variants
+    "taxes", "propertytaxes", "annualtaxes", "realestatetax", "yearlytax",
+  ],
+  insuranceMonthly: [
+    "insurance", "insurancemonthly", "monthlyinsurance",
+    // Landlord-specific policy names
+    "hazardinsurance", "homeownersinsurance", "landlordinsurance",
+    "propertyinsurance", "dwellinginsurance", "ins",
+  ],
+  hoaFeesMonthly: [
+    "hoa", "hoafees", "hoafeesmonthly", "monthlyhoa",
+    // Condo / Canadian / Australian variants
+    "condofee", "condofees", "associationfee", "hoafee", "strata",
+  ],
+  maintenancePercent: [
+    "maintenance", "maintenancepercent", "maint",
+    // BiggerPockets / Stessa CapEx convention
+    "repairs", "capex", "capitalexpenditure", "repairreserve", "capexreserve",
+    "maintenancerate", "repairpercent",
+  ],
+  vacancyPercent: [
+    "vacancy", "vacancypercent", "vacancyrate",
+    // Underwriting / lender language
+    "vacancyallowance", "losstovacancy", "vacancyloss", "voidrate", "vacancyfactor",
+  ],
+  propertyManagementPercent: [
+    "propertymanagement", "managementfee", "pmfee", "managementpercent", "pm",
+    // Abbreviated forms common in DIY sheets
+    "mgmt", "mgmtfee", "mgmtpercent", "propertymgmt", "managementrate",
+    "pmrate", "propertymanager",
+  ],
+  closingCostsPercent: [
+    "closingcosts", "closingcostspercent", "closingfee", "closing",
+    // Settlement / acquisition language
+    "acquisitioncosts", "settlementcosts", "settlementfee", "buyingcosts",
+    "transactioncosts", "escrow", "closingpct",
+  ],
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

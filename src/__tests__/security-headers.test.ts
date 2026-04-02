@@ -77,8 +77,8 @@ describe("next.config.ts — Security Headers", () => {
       expect(csp.length).toBeGreaterThan(0);
     });
 
-    it("script-src includes 'self' and Stripe.js", () => {
-      expect(csp).toMatch(/script-src[^;]*https:\/\/js\.stripe\.com/);
+    it("script-src does not include Stripe.js (Stripe removed)", () => {
+      expect(csp).not.toContain("js.stripe.com");
     });
 
     it("connect-src includes Supabase REST and Realtime (wss)", () => {
@@ -86,19 +86,18 @@ describe("next.config.ts — Security Headers", () => {
       expect(csp).toMatch(/connect-src[^;]*wss:\/\/\*\.supabase\.co/);
     });
 
-    it("connect-src includes Stripe API", () => {
-      expect(csp).toMatch(/connect-src[^;]*https:\/\/api\.stripe\.com/);
+    it("connect-src includes LemonSqueezy API", () => {
+      expect(csp).toContain("https://api.lemonsqueezy.com");
     });
 
-    it("connect-src includes Stripe fraud/Link endpoints (m.stripe.com, m.stripe.network, q.stripe.com)", () => {
-      expect(csp).toMatch(/connect-src[^;]*https:\/\/m\.stripe\.com/);
-      expect(csp).toMatch(/connect-src[^;]*https:\/\/m\.stripe\.network/);
-      expect(csp).toMatch(/connect-src[^;]*https:\/\/q\.stripe\.com/);
+    it("connect-src does not include Stripe endpoints", () => {
+      expect(csp).not.toContain("api.stripe.com");
+      expect(csp).not.toContain("m.stripe.com");
+      expect(csp).not.toContain("hooks.stripe.com");
     });
 
-    it("frame-src includes Stripe iframes (js.stripe.com and hooks.stripe.com)", () => {
-      expect(csp).toMatch(/frame-src[^;]*https:\/\/js\.stripe\.com/);
-      expect(csp).toMatch(/frame-src[^;]*https:\/\/hooks\.stripe\.com/);
+    it("frame-src includes LemonSqueezy app domain", () => {
+      expect(csp).toContain("https://app.lemonsqueezy.com");
     });
 
     it("object-src is 'none' (blocks plugins/Flash)", () => {

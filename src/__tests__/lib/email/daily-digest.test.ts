@@ -135,7 +135,7 @@ describe('buildDigestHtml', () => {
       appUrl: 'javascript:alert(1)',
     });
     expect(html).not.toContain('javascript:');
-    expect(html).toContain('https://getrentiq.com');
+    expect(html).toContain('https://tryrentiq.com');
   });
 });
 

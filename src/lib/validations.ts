@@ -81,9 +81,20 @@ export const displayNameSchema = z.object({
     ),
 });
 
-/** Body for POST /api/account/delete — type DELETE to confirm */
+// ─── Feedback form ────────────────────────────────────────────────────────────
+
+export const feedbackSchema = z.object({
+  name: z.string().max(100).optional(),
+  email: z.union([z.string().email(), z.literal(""), z.undefined()]).optional(),
+  message: z.string().min(1, "Message is required").max(2000),
+});
+
+export type FeedbackPayload = z.infer<typeof feedbackSchema>;
+
+/** Body for POST /api/account/delete — type DELETE to confirm, include current password */
 export const deleteAccountSchema = z.object({
   confirmation: z.literal("DELETE", {
     message: "Type DELETE to confirm.",
   }),
+  currentPassword: z.string().min(1, "Password is required to delete your account."),
 });

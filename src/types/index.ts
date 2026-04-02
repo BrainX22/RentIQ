@@ -66,6 +66,9 @@ export interface Subscription {
   user_id: string;
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
+  ls_customer_id: string | null;
+  ls_subscription_id: string | null;
+  ls_order_id: string | null;
   plan_type: "free" | "pro" | "max";
   status: "active" | "canceled" | "past_due";
   cancel_at_period_end: boolean;

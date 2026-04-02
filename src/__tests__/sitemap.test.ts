@@ -14,18 +14,18 @@ describe("sitemap()", () => {
     expect(entries.every((e) => e.url.startsWith("https://myapp.com"))).toBe(true);
   });
 
-  it("falls back to https://getrentiq.com when NEXT_PUBLIC_APP_URL is not set", async () => {
+  it("falls back to https://tryrentiq.com when NEXT_PUBLIC_APP_URL is not set", async () => {
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "");
     const { default: sitemap } = await import("@/app/sitemap");
     const entries = sitemap();
-    expect(entries.every((e) => e.url.startsWith("https://getrentiq.com"))).toBe(true);
+    expect(entries.every((e) => e.url.startsWith("https://tryrentiq.com"))).toBe(true);
   });
 
-  it("returns exactly 6 URLs (homepage, calculator, how-it-works, compare, login, signup)", async () => {
+  it("returns exactly 8 URLs (homepage, calculator, compare, login, signup, privacy, terms, changelog)", async () => {
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://myapp.com");
     const { default: sitemap } = await import("@/app/sitemap");
     const entries = sitemap();
-    expect(entries).toHaveLength(6);
+    expect(entries).toHaveLength(8);
   });
 
   it("includes /compare with priority 0.7 and monthly changeFrequency", async () => {
@@ -70,6 +70,15 @@ describe("sitemap()", () => {
     expect(signup?.priority).toBe(0.3);
     expect(login?.changeFrequency).toBe("yearly");
     expect(signup?.changeFrequency).toBe("yearly");
+  });
+
+  it("includes /privacy, /terms, /changelog", async () => {
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://myapp.com");
+    const { default: sitemap } = await import("@/app/sitemap");
+    const entries = sitemap();
+    expect(entries.some((e) => e.url === "https://myapp.com/privacy")).toBe(true);
+    expect(entries.some((e) => e.url === "https://myapp.com/terms")).toBe(true);
+    expect(entries.some((e) => e.url === "https://myapp.com/changelog")).toBe(true);
   });
 
   it("does NOT include /dashboard (protected route)", async () => {

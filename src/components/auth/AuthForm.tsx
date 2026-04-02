@@ -24,6 +24,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
 
   const isLogin = mode === "login";
 
@@ -66,21 +67,28 @@ export default function AuthForm({ mode }: AuthFormProps) {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    setIsSubmitting(true);
+  const handleMagicLink = async () => {
+    if (!email) {
+      toast.error("Enter your email above first.");
+      return;
+    }
 
+    setIsSubmitting(true);
     try {
       const origin = window.location.origin;
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
         options: {
-          redirectTo: `${origin}/auth/callback`,
+          emailRedirectTo: `${origin}/auth/callback`,
         },
       });
 
       if (error) {
         toast.error(error.message);
+        return;
       }
+
+      setMagicLinkSent(true);
     } finally {
       setIsSubmitting(false);
     }
@@ -116,7 +124,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              minLength={6}
+              minLength={8}
               className="pr-10"
             />
             <button
@@ -141,9 +149,21 @@ export default function AuthForm({ mode }: AuthFormProps) {
         <div className="h-px flex-1 bg-gray-200" />
       </div>
 
-      <Button type="button" variant="outline" className="w-full" onClick={handleGoogleLogin} disabled={isSubmitting}>
-        Continue with Google
-      </Button>
+      {magicLinkSent ? (
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">
+          Link sent to <strong>{email}</strong>. Check your inbox — it expires in 1 hour.
+        </div>
+      ) : (
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          onClick={() => void handleMagicLink()}
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sign in with email link"}
+        </Button>
+      )}
 
       <p className="mt-4 text-center text-sm text-gray-500">
         {isLogin ? "No account yet?" : "Already have an account?"}{" "}

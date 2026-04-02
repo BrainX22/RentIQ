@@ -8,6 +8,20 @@ import {
 import { displayNameSchema } from "@/lib/validations";
 import { deriveDisplayName, detectAuthProvider } from "@/lib/profile-utils";
 
+/** Belt-and-suspenders CSRF check: Origin header must match Host.
+ *  Supabase SameSite=Lax cookies already prevent most CSRF, but this
+ *  adds an extra layer for mutation endpoints. */
+function isCsrfSafe(request: Request): boolean {
+  const origin = request.headers.get("origin");
+  const host = request.headers.get("host");
+  if (!origin) return true; // Same-origin browser requests omit Origin
+  try {
+    return new URL(origin).host === host;
+  } catch {
+    return false;
+  }
+}
+
 function getCurrentMonthYear(): string {
   const now = new Date();
   const month = String(now.getMonth() + 1).padStart(2, "0");
@@ -197,6 +211,11 @@ export async function PATCH(request: Request): Promise<NextResponse> {
         { status: 503 }
       );
     }
+  }
+
+  // ── CSRF check ─────────────────────────────────────────────────────────────
+  if (!isCsrfSafe(request)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   // ── Auth ───────────────────────────────────────────────────────────────────

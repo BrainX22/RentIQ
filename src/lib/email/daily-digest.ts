@@ -113,13 +113,13 @@ export function buildDigestHtml(params: {
     try {
       const parsed = new URL(appUrl);
       if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
-        return 'https://getrentiq.com';
+        return 'https://tryrentiq.com';
       }
       // Use origin + pathname without trailing slash to avoid double-slash on /dashboard
       const normalized = parsed.origin + parsed.pathname.replace(/\/$/, '');
       return escapeHtml(normalized);
     } catch {
-      return 'https://getrentiq.com';
+      return 'https://tryrentiq.com';
     }
   })();
 

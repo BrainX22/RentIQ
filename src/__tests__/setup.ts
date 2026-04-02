@@ -5,9 +5,11 @@ import { vi } from "vitest";
 process.env.NEXT_PUBLIC_SUPABASE_URL = "https://test.supabase.co";
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "test-anon-key";
 process.env.SUPABASE_SERVICE_ROLE_KEY = "test-service-role-key";
-process.env.STRIPE_SECRET_KEY = "sk_test_placeholder";
-process.env.STRIPE_WEBHOOK_SECRET = "whsec_test";
-process.env.STRIPE_PRICE_ID = "price_test_123";
+process.env.LEMONSQUEEZY_API_KEY = "test-ls-api-key";
+process.env.LEMONSQUEEZY_STORE_ID = "321542";
+process.env.LEMONSQUEEZY_WEBHOOK_SECRET = "test-ls-webhook-secret-32chars!!";
+process.env.LEMONSQUEEZY_PRO_VARIANT_ID = "1477889";
+process.env.LEMONSQUEEZY_MAX_VARIANT_ID = "1477891";
 
 // ─── Radix UI / jsdom browser API stubs ──────────────────────────────────────
 // Radix UI Dialog, Popover, Select, etc. call these APIs that jsdom omits.

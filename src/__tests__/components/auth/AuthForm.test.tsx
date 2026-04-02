@@ -1,11 +1,11 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const { mockSignInWithPassword, mockSignUp, mockSignInWithOAuth } = vi.hoisted(() => ({
+const { mockSignInWithPassword, mockSignUp, mockSignInWithOtp } = vi.hoisted(() => ({
   mockSignInWithPassword: vi.fn(),
   mockSignUp: vi.fn(),
-  mockSignInWithOAuth: vi.fn(),
+  mockSignInWithOtp: vi.fn(),
 }));
 
 vi.mock("@/lib/supabase/client", () => ({
@@ -13,7 +13,7 @@ vi.mock("@/lib/supabase/client", () => ({
     auth: {
       signInWithPassword: mockSignInWithPassword,
       signUp: mockSignUp,
-      signInWithOAuth: mockSignInWithOAuth,
+      signInWithOtp: mockSignInWithOtp,
     },
   }),
 }));
@@ -65,5 +65,63 @@ describe("AuthForm — password visibility toggle", () => {
     expect(screen.getByLabelText("Password")).toHaveAttribute("type", "password");
     await user.click(screen.getByRole("button", { name: /show password/i }));
     expect(screen.getByLabelText("Password")).toHaveAttribute("type", "text");
+  });
+});
+
+describe("AuthForm — Google OAuth removed", () => {
+  it("does not render a Google sign-in button", () => {
+    render(<AuthForm mode="login" />);
+    expect(screen.queryByRole("button", { name: /google/i })).not.toBeInTheDocument();
+  });
+});
+
+describe("AuthForm — magic link", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("renders a sign-in-with-email-link button", () => {
+    render(<AuthForm mode="login" />);
+    expect(screen.getByRole("button", { name: /sign in with email link/i })).toBeInTheDocument();
+  });
+
+  it("shows toast error when magic link clicked with no email", async () => {
+    const user = userEvent.setup();
+    mockSignInWithOtp.mockResolvedValue({ error: null });
+    render(<AuthForm mode="login" />);
+    await user.click(screen.getByRole("button", { name: /sign in with email link/i }));
+    expect(mockSignInWithOtp).not.toHaveBeenCalled();
+  });
+
+  it("calls signInWithOtp with email and redirect URL", async () => {
+    const user = userEvent.setup();
+    mockSignInWithOtp.mockResolvedValue({ error: null });
+    render(<AuthForm mode="login" />);
+    await user.type(screen.getByLabelText("Email"), "test@example.com");
+    await user.click(screen.getByRole("button", { name: /sign in with email link/i }));
+    expect(mockSignInWithOtp).toHaveBeenCalledWith(
+      expect.objectContaining({ email: "test@example.com" })
+    );
+  });
+
+  it("shows confirmation message after successful magic link send", async () => {
+    const user = userEvent.setup();
+    mockSignInWithOtp.mockResolvedValue({ error: null });
+    render(<AuthForm mode="login" />);
+    await user.type(screen.getByLabelText("Email"), "test@example.com");
+    await user.click(screen.getByRole("button", { name: /sign in with email link/i }));
+    await waitFor(() => {
+      expect(screen.getByText(/check your inbox/i)).toBeInTheDocument();
+    });
+  });
+
+  it("hides confirmation message on error and keeps button visible", async () => {
+    const user = userEvent.setup();
+    mockSignInWithOtp.mockResolvedValue({ error: { message: "Rate limit exceeded" } });
+    render(<AuthForm mode="login" />);
+    await user.type(screen.getByLabelText("Email"), "test@example.com");
+    await user.click(screen.getByRole("button", { name: /sign in with email link/i }));
+    await waitFor(() => {
+      expect(screen.queryByText(/check your inbox/i)).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /sign in with email link/i })).toBeInTheDocument();
+    });
   });
 });

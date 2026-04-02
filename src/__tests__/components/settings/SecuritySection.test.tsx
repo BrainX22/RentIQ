@@ -58,4 +58,14 @@ describe("SecuritySection", () => {
     const submitBtn = screen.getByRole("button", { name: /Update Password/i });
     expect(submitBtn).toBeDisabled();
   });
+
+  it("shows error when new password is fewer than 8 characters", async () => {
+    const user = userEvent.setup();
+    render(<SecuritySection authProvider="email" email="test@example.com" />);
+    await user.type(screen.getByLabelText(/current password/i), "oldpass123");
+    await user.type(screen.getByLabelText(/^new password/i), "short");
+    await user.type(screen.getByLabelText(/confirm new password/i), "short");
+    await user.click(screen.getByRole("button", { name: /update password/i }));
+    expect(screen.getByText(/at least 8 characters/i)).toBeInTheDocument();
+  });
 });

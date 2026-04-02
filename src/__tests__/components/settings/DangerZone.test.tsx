@@ -23,7 +23,14 @@ describe("DangerZone", () => {
     expect(screen.getByText(/Are you sure/)).toBeInTheDocument();
   });
 
-  it("disables confirm button until DELETE is typed", async () => {
+  it("shows password field in confirmation panel", async () => {
+    const user = userEvent.setup();
+    render(<DangerZone onAccountDeleted={onAccountDeleted} />);
+    await user.click(screen.getByRole("button", { name: /Delete Account/i }));
+    expect(screen.getByLabelText(/current password/i)).toBeInTheDocument();
+  });
+
+  it("disables confirm button until DELETE is typed AND password entered", async () => {
     const user = userEvent.setup();
     render(<DangerZone onAccountDeleted={onAccountDeleted} />);
     await user.click(screen.getByRole("button", { name: /Delete Account/i }));
@@ -31,12 +38,16 @@ describe("DangerZone", () => {
     const confirmBtn = screen.getByRole("button", { name: /Delete My Account/i });
     expect(confirmBtn).toBeDisabled();
 
-    const input = screen.getByPlaceholderText("DELETE");
-    await user.type(input, "DELETE");
+    // Type DELETE but no password — still disabled
+    await user.type(screen.getByPlaceholderText("DELETE"), "DELETE");
+    expect(confirmBtn).toBeDisabled();
+
+    // Enter password — now enabled
+    await user.type(screen.getByLabelText(/current password/i), "mypassword");
     expect(confirmBtn).not.toBeDisabled();
   });
 
-  it("calls API and onAccountDeleted on successful deletion", async () => {
+  it("calls API with confirmation and currentPassword", async () => {
     const user = userEvent.setup();
     mockFetch.mockResolvedValueOnce({
       ok: true,
@@ -46,10 +57,31 @@ describe("DangerZone", () => {
     render(<DangerZone onAccountDeleted={onAccountDeleted} />);
     await user.click(screen.getByRole("button", { name: /Delete Account/i }));
     await user.type(screen.getByPlaceholderText("DELETE"), "DELETE");
+    await user.type(screen.getByLabelText(/current password/i), "mypassword");
     await user.click(screen.getByRole("button", { name: /Delete My Account/i }));
 
-    expect(mockFetch).toHaveBeenCalledWith("/api/account/delete", expect.objectContaining({
-      method: "POST",
-    }));
+    expect(mockFetch).toHaveBeenCalledWith(
+      "/api/account/delete",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ confirmation: "DELETE", currentPassword: "mypassword" }),
+      })
+    );
+  });
+
+  it("shows error toast on incorrect password (401)", async () => {
+    const user = userEvent.setup();
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      json: async () => ({ error: "Incorrect password." }),
+    });
+
+    render(<DangerZone onAccountDeleted={onAccountDeleted} />);
+    await user.click(screen.getByRole("button", { name: /Delete Account/i }));
+    await user.type(screen.getByPlaceholderText("DELETE"), "DELETE");
+    await user.type(screen.getByLabelText(/current password/i), "wrongpassword");
+    await user.click(screen.getByRole("button", { name: /Delete My Account/i }));
+
+    expect(onAccountDeleted).not.toHaveBeenCalled();
   });
 });

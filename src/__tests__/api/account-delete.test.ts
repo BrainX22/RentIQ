@@ -5,22 +5,25 @@ const {
   mockFrom,
   mockSupabase,
   mockIsRateLimitingEnabled,
-  mockStripeCancelSubscription,
+  mockCancelLsSubscription,
+  mockSignInWithPassword,
 } = vi.hoisted(() => {
   const mockGetUser = vi.fn();
   const mockFrom = vi.fn();
+  const mockSignInWithPassword = vi.fn().mockResolvedValue({ error: null });
   const mockSupabase = {
-    auth: { getUser: mockGetUser },
+    auth: { getUser: mockGetUser, signInWithPassword: mockSignInWithPassword },
     from: mockFrom,
   };
   const mockIsRateLimitingEnabled = vi.fn().mockReturnValue(false);
-  const mockStripeCancelSubscription = vi.fn().mockResolvedValue({});
+  const mockCancelLsSubscription = vi.fn().mockResolvedValue(undefined);
   return {
     mockGetUser,
     mockFrom,
     mockSupabase,
     mockIsRateLimitingEnabled,
-    mockStripeCancelSubscription,
+    mockCancelLsSubscription,
+    mockSignInWithPassword,
   };
 });
 
@@ -41,12 +44,23 @@ vi.mock("@/lib/rate-limit", () => ({
     limit: vi.fn().mockResolvedValue({ success: true, reset: Date.now() + 60000 }),
   }),
   getClientIp: vi.fn().mockReturnValue("127.0.0.1"),
+  getAccountDeleteByUserLimiter: vi.fn().mockReturnValue({
+    limit: vi.fn().mockResolvedValue({ success: true, reset: Date.now() + 60000 }),
+  }),
 }));
 
-vi.mock("@/lib/stripe", () => ({
-  default: {
-    subscriptions: { cancel: mockStripeCancelSubscription },
-  },
+vi.mock("@/lib/lemonsqueezy", () => ({
+  cancelLsSubscription: mockCancelLsSubscription,
+}));
+
+vi.mock("@/lib/supabase/admin", () => ({
+  createAdminClient: vi.fn().mockReturnValue({
+    auth: {
+      admin: {
+        deleteUser: vi.fn().mockResolvedValue({ error: null }),
+      },
+    },
+  }),
 }));
 
 import { POST } from "@/app/api/account/delete/route";
@@ -86,7 +100,7 @@ describe("POST /api/account/delete", () => {
 
   it("returns 401 when not authenticated", async () => {
     mockGetUser.mockResolvedValue({ data: { user: null } });
-    const res = await POST(makeRequest({ confirmation: "DELETE" }));
+    const res = await POST(makeRequest({ confirmation: "DELETE", currentPassword: "testpassword" }));
     expect(res.status).toBe(401);
   });
 
@@ -95,8 +109,7 @@ describe("POST /api/account/delete", () => {
       data: { user: { id: USER_ID, email: "test@example.com" } },
     });
 
-    // Need to provide a chain for any from() calls, but validation should fail first
-    const res = await POST(makeRequest({ confirmation: "delete" }));
+    const res = await POST(makeRequest({ confirmation: "delete", currentPassword: "testpassword" }));
     expect(res.status).toBe(400);
     const json = await res.json();
     expect(json.error).toContain("DELETE");
@@ -113,22 +126,50 @@ describe("POST /api/account/delete", () => {
     expect(json.error).toContain("DELETE");
   });
 
-  it("cancels Stripe subscription and soft-deletes account", async () => {
+  it("returns 400 when currentPassword is missing", async () => {
     mockGetUser.mockResolvedValue({
       data: { user: { id: USER_ID, email: "test@example.com" } },
     });
 
-    // Track from() call order to return different chains per table/call
+    const res = await POST(makeRequest({ confirmation: "DELETE" }));
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 401 when password is incorrect", async () => {
+    mockGetUser.mockResolvedValue({
+      data: { user: { id: USER_ID, email: "test@example.com" } },
+    });
+    mockSignInWithPassword.mockResolvedValue({
+      error: { message: "Invalid login credentials" },
+    });
+
+    const { POST } = await import("@/app/api/account/delete/route");
+    const req = new Request("http://localhost/api/account/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ confirmation: "DELETE", currentPassword: "wrongpass" }),
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(401);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toMatch(/incorrect password/i);
+  });
+
+  it("cancels LS subscription and soft-deletes account", async () => {
+    mockGetUser.mockResolvedValue({
+      data: { user: { id: USER_ID, email: "test@example.com" } },
+    });
+    mockSignInWithPassword.mockResolvedValue({ error: null });
+
     const calls: string[] = [];
     mockFrom.mockImplementation((table: string) => {
       calls.push(table);
 
       if (table === "subscriptions") {
-        // First subscriptions call = SELECT, second = UPDATE
         const subCalls = calls.filter((c) => c === "subscriptions");
         if (subCalls.length === 1) {
           return mockSelectChain({
-            stripe_subscription_id: "sub_123",
+            ls_subscription_id: "2022684",
             status: "active",
           });
         }
@@ -142,17 +183,18 @@ describe("POST /api/account/delete", () => {
       return mockSelectChain(null);
     });
 
-    const res = await POST(makeRequest({ confirmation: "DELETE" }));
+    const res = await POST(makeRequest({ confirmation: "DELETE", currentPassword: "testpassword" }));
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.deleted).toBe(true);
-    expect(mockStripeCancelSubscription).toHaveBeenCalledWith("sub_123");
+    expect(mockCancelLsSubscription).toHaveBeenCalledWith("2022684");
   });
 
-  it("soft-deletes account without Stripe when no subscription", async () => {
+  it("soft-deletes account without LS cancel when no subscription", async () => {
     mockGetUser.mockResolvedValue({
       data: { user: { id: USER_ID, email: "test@example.com" } },
     });
+    mockSignInWithPassword.mockResolvedValue({ error: null });
 
     mockFrom.mockImplementation((table: string) => {
       if (table === "subscriptions") {
@@ -164,17 +206,18 @@ describe("POST /api/account/delete", () => {
       return mockSelectChain(null);
     });
 
-    const res = await POST(makeRequest({ confirmation: "DELETE" }));
+    const res = await POST(makeRequest({ confirmation: "DELETE", currentPassword: "testpassword" }));
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.deleted).toBe(true);
-    expect(mockStripeCancelSubscription).not.toHaveBeenCalled();
+    expect(mockCancelLsSubscription).not.toHaveBeenCalled();
   });
 
-  it("skips Stripe cancel when subscription exists but is not active", async () => {
+  it("skips LS cancel when subscription exists but is not active", async () => {
     mockGetUser.mockResolvedValue({
       data: { user: { id: USER_ID, email: "test@example.com" } },
     });
+    mockSignInWithPassword.mockResolvedValue({ error: null });
 
     const calls: string[] = [];
     mockFrom.mockImplementation((table: string) => {
@@ -184,7 +227,7 @@ describe("POST /api/account/delete", () => {
         const subCalls = calls.filter((c) => c === "subscriptions");
         if (subCalls.length === 1) {
           return mockSelectChain({
-            stripe_subscription_id: "sub_456",
+            ls_subscription_id: "2022684",
             status: "canceled",
           });
         }
@@ -198,29 +241,30 @@ describe("POST /api/account/delete", () => {
       return mockSelectChain(null);
     });
 
-    const res = await POST(makeRequest({ confirmation: "DELETE" }));
+    const res = await POST(makeRequest({ confirmation: "DELETE", currentPassword: "testpassword" }));
     expect(res.status).toBe(200);
-    expect(mockStripeCancelSubscription).not.toHaveBeenCalled();
+    expect(mockCancelLsSubscription).not.toHaveBeenCalled();
   });
 
-  it("returns 500 when Stripe cancel fails", async () => {
+  it("returns 500 when LS cancel fails", async () => {
     mockGetUser.mockResolvedValue({
       data: { user: { id: USER_ID, email: "test@example.com" } },
     });
+    mockSignInWithPassword.mockResolvedValue({ error: null });
 
     mockFrom.mockImplementation((table: string) => {
       if (table === "subscriptions") {
         return mockSelectChain({
-          stripe_subscription_id: "sub_fail",
+          ls_subscription_id: "2022684",
           status: "active",
         });
       }
       return mockSelectChain(null);
     });
 
-    mockStripeCancelSubscription.mockRejectedValue(new Error("Stripe error"));
+    mockCancelLsSubscription.mockRejectedValue(new Error("LemonSqueezy cancel error"));
 
-    const res = await POST(makeRequest({ confirmation: "DELETE" }));
+    const res = await POST(makeRequest({ confirmation: "DELETE", currentPassword: "testpassword" }));
     expect(res.status).toBe(500);
     const json = await res.json();
     expect(json.error).toContain("cancel subscription");
@@ -230,6 +274,7 @@ describe("POST /api/account/delete", () => {
     mockGetUser.mockResolvedValue({
       data: { user: { id: USER_ID, email: "test@example.com" } },
     });
+    mockSignInWithPassword.mockResolvedValue({ error: null });
 
     mockFrom.mockImplementation((table: string) => {
       if (table === "subscriptions") {
@@ -241,32 +286,33 @@ describe("POST /api/account/delete", () => {
       return mockSelectChain(null);
     });
 
-    const res = await POST(makeRequest({ confirmation: "DELETE" }));
+    const res = await POST(makeRequest({ confirmation: "DELETE", currentPassword: "testpassword" }));
     expect(res.status).toBe(500);
     const json = await res.json();
     expect(json.error).toContain("delete account");
   });
 
-  it("returns 500 when stripe_subscription_id is malformed", async () => {
+  it("returns 500 when ls_subscription_id is malformed (non-numeric)", async () => {
     mockGetUser.mockResolvedValue({
       data: { user: { id: USER_ID, email: "test@example.com" } },
     });
+    mockSignInWithPassword.mockResolvedValue({ error: null });
 
     mockFrom.mockImplementation((table: string) => {
       if (table === "subscriptions") {
         return mockSelectChain({
-          stripe_subscription_id: "not-a-valid-id!",
+          ls_subscription_id: "invalid-id",
           status: "active",
         });
       }
       return mockSelectChain(null);
     });
 
-    const res = await POST(makeRequest({ confirmation: "DELETE" }));
+    const res = await POST(makeRequest({ confirmation: "DELETE", currentPassword: "testpassword" }));
     expect(res.status).toBe(500);
     const json = await res.json();
     expect(json.error).toContain("cancel subscription");
-    expect(mockStripeCancelSubscription).not.toHaveBeenCalled();
+    expect(mockCancelLsSubscription).not.toHaveBeenCalled();
   });
 
   it("returns 400 for invalid JSON body", async () => {

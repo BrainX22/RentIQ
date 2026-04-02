@@ -117,7 +117,168 @@ describe("autoMapXlsxHeaders", () => {
     expect(mapping.propertyTaxYearly).toBe("Property Tax (Yearly)");
     expect(mapping.hoaFeesMonthly).toBe("HOA Fees");
   });
-});
+
+  // ── BiggerPockets export column names ─────────────────────────────────────
+  it("maps BiggerPockets-style headers", () => {
+    const headers = [
+      "Purchase Price",
+      "Monthly Gross Rent",
+      "Annual Property Tax",
+      "Vacancy Rate",
+      "CapEx Reserve",
+      "Management Fee",
+      "Down Payment",
+      "Interest Rate",
+    ];
+    const mapping = autoMapXlsxHeaders(headers);
+    expect(mapping.propertyPrice).toBe("Purchase Price");
+    expect(mapping.monthlyRent).toBe("Monthly Gross Rent");
+    expect(mapping.propertyTaxYearly).toBe("Annual Property Tax");
+    expect(mapping.vacancyPercent).toBe("Vacancy Rate");
+    expect(mapping.maintenancePercent).toBe("CapEx Reserve");
+    expect(mapping.propertyManagementPercent).toBe("Management Fee");
+    expect(mapping.downPaymentPercent).toBe("Down Payment");
+    expect(mapping.interestRate).toBe("Interest Rate");
+  });
+
+  // ── Stessa export column names ────────────────────────────────────────────
+  it("maps Stessa-style headers", () => {
+    const headers = [
+      "Acquisition Price",
+      "Scheduled Rent",
+      "Property Taxes",
+      "Hazard Insurance",
+      "HOA Fee",
+      "CapEx",
+      "Property Management",
+      "Vacancy Allowance",
+    ];
+    const mapping = autoMapXlsxHeaders(headers);
+    expect(mapping.propertyPrice).toBe("Acquisition Price");
+    expect(mapping.monthlyRent).toBe("Scheduled Rent");
+    expect(mapping.propertyTaxYearly).toBe("Property Taxes");
+    expect(mapping.insuranceMonthly).toBe("Hazard Insurance");
+    expect(mapping.hoaFeesMonthly).toBe("HOA Fee");
+    expect(mapping.maintenancePercent).toBe("CapEx");
+    expect(mapping.propertyManagementPercent).toBe("Property Management");
+    expect(mapping.vacancyPercent).toBe("Vacancy Allowance");
+  });
+
+  // ── DealCheck export column names ─────────────────────────────────────────
+  it("maps DealCheck-style headers", () => {
+    const headers = [
+      "Asking Price",
+      "Monthly Income",
+      "Taxes",
+      "Insurance (Monthly)",
+      "HOA (Monthly)",
+      "Repairs",
+      "Mgmt Fee",
+      "Settlement Costs",
+      "Down %",
+      "Note Rate",
+    ];
+    const mapping = autoMapXlsxHeaders(headers);
+    expect(mapping.propertyPrice).toBe("Asking Price");
+    expect(mapping.monthlyRent).toBe("Monthly Income");
+    expect(mapping.propertyTaxYearly).toBe("Taxes");
+    expect(mapping.insuranceMonthly).toBe("Insurance (Monthly)");
+    expect(mapping.hoaFeesMonthly).toBe("HOA (Monthly)");
+    expect(mapping.maintenancePercent).toBe("Repairs");
+    expect(mapping.propertyManagementPercent).toBe("Mgmt Fee");
+    expect(mapping.closingCostsPercent).toBe("Settlement Costs");
+    expect(mapping.downPaymentPercent).toBe("Down %");
+    expect(mapping.interestRate).toBe("Note Rate");
+  });
+
+  // ── Common DIY landlord spreadsheet terms ────────────────────────────────
+  it("maps DIY landlord spreadsheet terms", () => {
+    const headers = [
+      "Market Value",
+      "Equity",
+      "GRI",
+      "Annual Taxes",
+      "Landlord Insurance",
+      "Condo Fee",
+      "Capex %",
+      "Loss to Vacancy",
+      "PM Rate",
+      "Escrow",
+      "Amortization",
+      "Int Rate",
+    ];
+    const mapping = autoMapXlsxHeaders(headers);
+    expect(mapping.propertyPrice).toBe("Market Value");
+    expect(mapping.downPaymentPercent).toBe("Equity");
+    expect(mapping.monthlyRent).toBe("GRI");
+    expect(mapping.propertyTaxYearly).toBe("Annual Taxes");
+    expect(mapping.insuranceMonthly).toBe("Landlord Insurance");
+    expect(mapping.hoaFeesMonthly).toBe("Condo Fee");
+    expect(mapping.maintenancePercent).toBe("Capex %");
+    expect(mapping.vacancyPercent).toBe("Loss to Vacancy");
+    expect(mapping.propertyManagementPercent).toBe("PM Rate");
+    expect(mapping.closingCostsPercent).toBe("Escrow");
+    expect(mapping.loanTermYears).toBe("Amortization");
+    expect(mapping.interestRate).toBe("Int Rate");
+  });
+
+  // ── Canadian / Australian / condo-specific terms ──────────────────────────
+  it("maps strata fee (Canadian/Australian HOA equivalent)", () => {
+    const mapping = autoMapXlsxHeaders(["Strata", "Fair Market Value", "GSR"]);
+    expect(mapping.hoaFeesMonthly).toBe("Strata");
+    expect(mapping.propertyPrice).toBe("Fair Market Value");
+    expect(mapping.monthlyRent).toBe("GSR");
+  });
+
+  // ── Underwriter / lender sheet terms ─────────────────────────────────────
+  it("maps underwriter / lender sheet terms", () => {
+    const headers = [
+      "Acquisition Costs",
+      "Vacancy Factor",
+      "Void Rate",
+      "Capital Expenditure",
+      "Dwelling Insurance",
+      "Homeowners Insurance",
+      "Loan Rate",
+      "Loan Period",
+      "Sale Price",
+      "Buying Costs",
+    ];
+    const mapping = autoMapXlsxHeaders(headers);
+    expect(mapping.closingCostsPercent).toBe("Acquisition Costs");
+    expect(mapping.vacancyPercent).toBe("Vacancy Factor");
+    expect(mapping.vacancyPercent).toBe("Vacancy Factor"); // same field
+    expect(mapping.maintenancePercent).toBe("Capital Expenditure");
+    expect(mapping.insuranceMonthly).toBe("Dwelling Insurance");
+    expect(mapping.insuranceMonthly).toBe("Dwelling Insurance");
+    expect(mapping.interestRate).toBe("Loan Rate");
+    expect(mapping.loanTermYears).toBe("Loan Period");
+    expect(mapping.propertyPrice).toBe("Sale Price");
+    expect(mapping.closingCostsPercent).toBe("Acquisition Costs");
+  });
+
+  // ── Abbreviated / shorthand columns ──────────────────────────────────────
+  it("maps abbreviated shorthand columns", () => {
+    // Note: ultra-short like "Vac" are intentionally not supported (false-positive risk)
+    const mapping = autoMapXlsxHeaders([
+      "DP", "APR", "Ins", "Maint", "PM", "Closing",
+    ]);
+    expect(mapping.downPaymentPercent).toBe("DP");
+    expect(mapping.interestRate).toBe("APR");
+    expect(mapping.insuranceMonthly).toBe("Ins");
+    expect(mapping.maintenancePercent).toBe("Maint");
+    expect(mapping.propertyManagementPercent).toBe("PM");
+    expect(mapping.closingCostsPercent).toBe("Closing");
+  });
+
+  // ── Rental income labelled differently ───────────────────────────────────
+  it("maps all rent synonyms to monthlyRent", () => {
+    const terms = ["Gross Rent", "Rental Income", "Rents", "Monthly Gross Rent", "Scheduled Rent"];
+    for (const term of terms) {
+      const mapping = autoMapXlsxHeaders([term]);
+      expect(mapping.monthlyRent).toBe(term);
+    }
+  });});
 
 // ─── buildInputsFromXlsxRow ──────────────────────────────────────────────────
 

@@ -1,21 +1,16 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import stripe from "@/lib/stripe";
+import { getCustomerPortalUrl } from "@/lib/lemonsqueezy";
 import { resolveRateLimiter, isRateLimitingEnabled } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Rate limit keyed on user.id — IP-keyed limits are trivially bypassed with
-  // proxy rotation for financial endpoints; user-scoped limits are meaningful.
   if (isRateLimitingEnabled()) {
     try {
       const limiter = resolveRateLimiter("/api/billing-portal", "POST");
@@ -33,36 +28,25 @@ export async function POST(request: Request) {
 
   const { data: subscription, error: subscriptionError } = await supabase
     .from("subscriptions")
-    .select("stripe_customer_id")
+    .select("ls_subscription_id")
     .eq("user_id", user.id)
     .maybeSingle();
 
   if (subscriptionError) {
-    return NextResponse.json({ error: subscriptionError.message }, { status: 400 });
+    console.error("[billing-portal] Subscription lookup error:", subscriptionError.message);
+    return NextResponse.json({ error: "Could not retrieve subscription." }, { status: 400 });
   }
 
-  const customerId = subscription?.stripe_customer_id;
-
-  if (!customerId) {
-    return NextResponse.json(
-      { error: "No Stripe customer found for this account." },
-      { status: 400 }
-    );
+  const subscriptionId = subscription?.ls_subscription_id;
+  if (!subscriptionId) {
+    return NextResponse.json({ error: "No active subscription found." }, { status: 400 });
   }
 
-  const origin = request.headers.get("origin") ?? "http://localhost:3000";
-
-  const session = await stripe.billingPortal.sessions.create({
-    customer: customerId,
-    return_url: `${origin}/dashboard`,
-  });
-
-  if (!session.url) {
-    return NextResponse.json(
-      { error: "Could not create billing portal session." },
-      { status: 500 }
-    );
+  try {
+    const url = await getCustomerPortalUrl(subscriptionId);
+    return NextResponse.json({ url });
+  } catch (error) {
+    console.error("[billing-portal] LemonSqueezy error:", error);
+    return NextResponse.json({ error: "Could not create billing portal session." }, { status: 500 });
   }
-
-  return NextResponse.json({ url: session.url });
 }

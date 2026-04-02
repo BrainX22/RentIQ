@@ -28,7 +28,7 @@ export default function SecuritySection({
 
   const isFormValid =
     currentPassword.length > 0 &&
-    newPassword.length >= 6 &&
+    newPassword.length >= 8 &&
     confirmPassword === newPassword &&
     newPassword !== currentPassword;
 
@@ -38,8 +38,8 @@ export default function SecuritySection({
     if (currentPassword.length === 0) {
       newErrors.current = "Current password is required.";
     }
-    if (newPassword.length < 6) {
-      newErrors.new = "New password must be at least 6 characters.";
+    if (newPassword.length < 8) {
+      newErrors.new = "New password must be at least 8 characters.";
     }
     if (newPassword === currentPassword && newPassword.length > 0) {
       newErrors.new = "New password must differ from current password.";
@@ -60,7 +60,12 @@ export default function SecuritySection({
     const supabase = createClient();
 
     try {
-      // Step 1: Re-authenticate with current password
+      // Step 1: Re-authenticate with current password.
+      // Note: signInWithPassword creates a new session as a side effect (H-4).
+      // This is acceptable here — the session refresh is harmless during a
+      // password change flow, and removing this step would allow session-theft
+      // to enable silent password changes. reauthenticate() (Supabase v2.39+)
+      // is a cleaner alternative when available.
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password: currentPassword,
@@ -159,7 +164,12 @@ export default function SecuritySection({
               autoComplete="new-password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              minLength={6}
+              onBlur={() => {
+                if (newPassword.length > 0 && newPassword.length < 8) {
+                  setErrors((prev) => ({ ...prev, new: "New password must be at least 8 characters." }));
+                }
+              }}
+              minLength={8}
               aria-invalid={!!errors.new}
               aria-describedby={errors.new ? "newPassword-error" : undefined}
               className="pr-10"

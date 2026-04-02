@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { displayNameSchema, deleteAccountSchema } from "@/lib/validations";
+import { displayNameSchema, deleteAccountSchema, feedbackSchema } from "@/lib/validations";
 
 describe("displayNameSchema", () => {
   it("accepts a valid display name", () => {
@@ -81,10 +81,51 @@ describe("displayNameSchema", () => {
   });
 });
 
-describe("deleteAccountSchema", () => {
-  it("accepts exact 'DELETE' string", () => {
-    const result = deleteAccountSchema.safeParse({ confirmation: "DELETE" });
+describe("feedbackSchema", () => {
+  it("accepts valid submission with message only", () => {
+    expect(feedbackSchema.safeParse({ message: "Great tool!" }).success).toBe(true);
+  });
+
+  it("accepts submission with optional name and email", () => {
+    const result = feedbackSchema.safeParse({
+      name: "Alice",
+      email: "alice@example.com",
+      message: "Loving it",
+    });
     expect(result.success).toBe(true);
+  });
+
+  it("rejects empty message", () => {
+    expect(feedbackSchema.safeParse({ message: "" }).success).toBe(false);
+  });
+
+  it("rejects message over 2000 chars", () => {
+    expect(feedbackSchema.safeParse({ message: "a".repeat(2001) }).success).toBe(false);
+  });
+
+  it("rejects invalid email format", () => {
+    expect(feedbackSchema.safeParse({ email: "notanemail", message: "Hi" }).success).toBe(false);
+  });
+
+  it("accepts missing name and email (both optional)", () => {
+    expect(feedbackSchema.safeParse({ message: "Good stuff" }).success).toBe(true);
+  });
+});
+
+describe("deleteAccountSchema", () => {
+  it("accepts exact 'DELETE' string with currentPassword", () => {
+    const result = deleteAccountSchema.safeParse({ confirmation: "DELETE", currentPassword: "mypassword" });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects 'DELETE' without currentPassword", () => {
+    const result = deleteAccountSchema.safeParse({ confirmation: "DELETE" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects 'DELETE' with empty currentPassword", () => {
+    const result = deleteAccountSchema.safeParse({ confirmation: "DELETE", currentPassword: "" });
+    expect(result.success).toBe(false);
   });
 
   it("rejects lowercase 'delete'", () => {

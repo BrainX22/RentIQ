@@ -11,13 +11,8 @@ import type { NextConfig } from "next";
 //  • style-src   — 'unsafe-inline' required: Tailwind injects inline styles.
 //  • font-src    — 'self' only: next/font/google self-hosts fonts at build time;
 //    no google fonts domains needed at runtime.
-//  • connect-src — Supabase REST + Auth + Realtime (wss://); Stripe API + fraud
-//    detection endpoints (m.stripe.com, m.stripe.network, q.stripe.com). The
-//    fraud endpoints are included proactively so Stripe Elements works without
-//    CSP changes when added later.
-//  • frame-src   — Stripe Checkout iframes (js.stripe.com + hooks.stripe.com).
-//    hooks.stripe.com is required for 3DS/SCA — omitting it silently breaks
-//    European card payments.
+//  • connect-src — Supabase REST + Auth + Realtime (wss://); LemonSqueezy API.
+//  • frame-src   — LemonSqueezy customer portal (app.lemonsqueezy.com).
 //  • frame-ancestors — CSP equivalent of X-Frame-Options; belt-and-suspenders
 //    since modern browsers prefer CSP over the legacy header.
 //  • object-src  — 'none': blocks all plugins (Flash, etc.).
@@ -26,7 +21,7 @@ import type { NextConfig } from "next";
 
 const ContentSecurityPolicy = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://js.stripe.com",
+  "script-src 'self' 'unsafe-inline' https://plausible.io",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: https:",
   "font-src 'self'",
@@ -34,12 +29,10 @@ const ContentSecurityPolicy = [
     "connect-src 'self'",
     "https://*.supabase.co",
     "wss://*.supabase.co",
-    "https://api.stripe.com",
-    "https://m.stripe.com",
-    "https://m.stripe.network",
-    "https://q.stripe.com",
+    "https://api.lemonsqueezy.com",
+    "https://plausible.io",
   ].join(" "),
-  "frame-src https://js.stripe.com https://hooks.stripe.com",
+  "frame-src https://app.lemonsqueezy.com",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",

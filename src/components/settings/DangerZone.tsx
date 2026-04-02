@@ -5,6 +5,7 @@ import { AlertTriangle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface DangerZoneProps {
   onAccountDeleted: () => void;
@@ -12,10 +13,11 @@ interface DangerZoneProps {
 
 export default function DangerZone({ onAccountDeleted }: DangerZoneProps) {
   const [confirmation, setConfirmation] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
-  const isConfirmed = confirmation === "DELETE";
+  const isConfirmed = confirmation === "DELETE" && currentPassword.length > 0;
 
   const handleDelete = async () => {
     if (!isConfirmed) return;
@@ -25,7 +27,7 @@ export default function DangerZone({ onAccountDeleted }: DangerZoneProps) {
       const res = await fetch("/api/account/delete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ confirmation: "DELETE" }),
+        body: JSON.stringify({ confirmation: "DELETE", currentPassword }),
       });
 
       const payload = (await res.json()) as { error?: string; deleted?: boolean };
@@ -81,6 +83,20 @@ export default function DangerZone({ onAccountDeleted }: DangerZoneProps) {
             autoComplete="off"
             className="max-w-xs"
           />
+          <div className="space-y-1.5">
+            <Label htmlFor="deletePassword" className="text-sm text-gray-700">
+              Current password
+            </Label>
+            <Input
+              id="deletePassword"
+              type="password"
+              autoComplete="current-password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="Enter your password"
+              className="max-w-xs"
+            />
+          </div>
           <div className="flex gap-2">
             <Button
               type="button"
@@ -88,6 +104,7 @@ export default function DangerZone({ onAccountDeleted }: DangerZoneProps) {
               onClick={() => {
                 setIsOpen(false);
                 setConfirmation("");
+                setCurrentPassword("");
               }}
             >
               Cancel
