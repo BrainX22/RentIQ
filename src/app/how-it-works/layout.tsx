@@ -1,6 +1,7 @@
 // rpc/src/app/how-it-works/layout.tsx
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import Footer from "@/components/layout/Footer";
 
 export const metadata: Metadata = {
   title: "How RentIQ Works — Full Feature Guide",
@@ -18,5 +19,10 @@ export default function HowItWorksLayout({
 }: {
   children: ReactNode;
 }) {
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      <Footer />
+    </>
+  );
 }

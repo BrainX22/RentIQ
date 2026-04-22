@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Footer from "@/components/layout/Footer";
 import Hero from "@/components/landing/Hero";
 import SocialProof from "@/components/landing/SocialProof";
 import ProductWalkthrough from "@/components/landing/ProductWalkthrough";
@@ -50,6 +51,7 @@ export default function Home() {
         <FAQSection />
         <FeedbackSection />
       </div>
+      <Footer />
     </>
   );
 }

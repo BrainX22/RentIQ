@@ -63,7 +63,7 @@ export default function VerdictRow({ properties }: VerdictRowProps) {
                       </TooltipTrigger>
 
                       {/* Score breakdown shown on hover */}
-                      <TooltipContent side="top" className="max-w-[13rem] p-3">
+                      <TooltipContent side="top" className="max-w-[13rem] p-3 bg-white text-gray-900 border border-gray-200 shadow-md">
                         <p className="mb-2 text-xs font-semibold text-gray-900">
                           Score Breakdown
                         </p>

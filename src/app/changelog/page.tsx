@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Footer from "@/components/layout/Footer";
 
 export const metadata: Metadata = {
   title: "Changelog — RentIQ",
@@ -27,6 +28,7 @@ const RELEASES = [
 
 export default function ChangelogPage() {
   return (
+    <>
     <main className="mx-auto max-w-2xl px-4 py-16 sm:px-6 lg:px-8">
       <h1 className="text-3xl font-bold tracking-tight text-gray-900">Changelog</h1>
       <p className="mt-2 text-sm text-gray-500">
@@ -56,5 +58,7 @@ export default function ChangelogPage() {
         ))}
       </div>
     </main>
+    <Footer />
+    </>
   );
 }

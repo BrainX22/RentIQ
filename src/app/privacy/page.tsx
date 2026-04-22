@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Footer from "@/components/layout/Footer";
 
 export const metadata: Metadata = {
   title: "Privacy Policy — RentIQ",
@@ -11,6 +12,7 @@ const LAST_UPDATED = "April 1, 2026";
 
 export default function PrivacyPage() {
   return (
+    <>
     <main className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
       <div className="prose prose-gray max-w-none">
         <h1 className="text-3xl font-bold tracking-tight text-gray-900">Privacy Policy</h1>
@@ -122,5 +124,7 @@ export default function PrivacyPage() {
         </p>
       </div>
     </main>
+    <Footer />
+    </>
   );
 }

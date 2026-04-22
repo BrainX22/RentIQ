@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Footer from "@/components/layout/Footer";
 
 export const metadata: Metadata = {
   title: "Terms of Service — RentIQ",
@@ -11,6 +12,7 @@ const LAST_UPDATED = "April 1, 2026";
 
 export default function TermsPage() {
   return (
+    <>
     <main className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
       <div className="prose prose-gray max-w-none">
         <h1 className="text-3xl font-bold tracking-tight text-gray-900">Terms of Service</h1>
@@ -127,5 +129,7 @@ export default function TermsPage() {
         </p>
       </div>
     </main>
+    <Footer />
+    </>
   );
 }

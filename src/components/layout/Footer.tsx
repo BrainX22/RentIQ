@@ -7,7 +7,7 @@ const PRODUCT_LINKS = [
   { href: "/dashboard",     label: "Dashboard"     },
   { href: "/#pricing",      label: "Pricing"       },
   { href: "/compare",       label: "Compare"       },
-  { href: "/#how-it-works", label: "How It Works"  },
+  { href: "/how-it-works",  label: "How It Works"  },
 ];
 
 const LEGAL_LINKS = [

@@ -5,7 +5,6 @@ import "./globals.css";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -59,8 +58,7 @@ export default function RootLayout({
       >
         <TooltipProvider>
           <Navbar />
-          <main className="min-h-[calc(100vh-4rem-5rem)]">{children}</main>
-          <Footer />
+          <main className="min-h-[calc(100vh-4rem)]">{children}</main>
           <Toaster richColors position="top-right" />
         </TooltipProvider>
         {/* Plausible Analytics — privacy-friendly, no cookie banner needed */}
